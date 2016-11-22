@@ -1,0 +1,15 @@
+//
+//  VideoDetailCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+//#import "ShareListModel.h"
+#import "ShareVideosInfoModel.h"
+@interface VideoDetailCell : UICollectionViewCell
+@property (nonatomic , strong) ShareVideosInfoModel *detailModel;
+//@property (nonatomic, strong) ShareModel *shareModel;
+@end

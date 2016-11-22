@@ -1,0 +1,411 @@
+/*
+ Copyright(C) 2011-2015 MotionPortrait, Inc. All Rights Reserved.
+
+ This software is provided 'as-is', without any express or implied
+ warranty. In no event will the authors be held liable for any damages
+ arising from the use of this software.
+
+ Permission is granted to anyone to use this software for any purpose,
+ including commercial applications, and to alter it and redistribute it.
+ */
+
+
+#import "imageUtil.h"
+
+@implementation imageUtil
+
+
++ (UIImage *)fixrotation:(UIImage *)image {
+    if (image.imageOrientation == UIImageOrientationUp) return image;
+    CGAffineTransform transform = CGAffineTransformIdentity;
+    
+    switch (image.imageOrientation) {
+        case UIImageOrientationDown:
+        case UIImageOrientationDownMirrored:
+            transform = CGAffineTransformTranslate(transform, image.size.width, image.size.height);
+            transform = CGAffineTransformRotate(transform, M_PI);
+            break;
+            
+        case UIImageOrientationLeft:
+        case UIImageOrientationLeftMirrored:
+            transform = CGAffineTransformTranslate(transform, image.size.width, 0);
+            transform = CGAffineTransformRotate(transform, M_PI_2);
+            break;
+            
+        case UIImageOrientationRight:
+        case UIImageOrientationRightMirrored:
+            transform = CGAffineTransformTranslate(transform, 0, image.size.height);
+            transform = CGAffineTransformRotate(transform, -M_PI_2);
+            break;
+        case UIImageOrientationUp:
+        case UIImageOrientationUpMirrored:
+            break;
+    }
+    
+    switch (image.imageOrientation) {
+        case UIImageOrientationUpMirrored:
+        case UIImageOrientationDownMirrored:
+            transform = CGAffineTransformTranslate(transform, image.size.width, 0);
+            transform = CGAffineTransformScale(transform, -1, 1);
+            break;
+            
+        case UIImageOrientationLeftMirrored:
+        case UIImageOrientationRightMirrored:
+            transform = CGAffineTransformTranslate(transform, image.size.height, 0);
+            transform = CGAffineTransformScale(transform, -1, 1);
+            break;
+        case UIImageOrientationUp:
+        case UIImageOrientationDown:
+        case UIImageOrientationLeft:
+        case UIImageOrientationRight:
+            break;
+    }
+    
+    // Now we draw the underlying CGImage into a new context, applying the transform
+    // calculated above.
+    CGContextRef ctx = CGBitmapContextCreate(NULL, image.size.width, image.size.height,
+                                             CGImageGetBitsPerComponent(image.CGImage), 0,
+                                             CGImageGetColorSpace(image.CGImage),
+                                             CGImageGetBitmapInfo(image.CGImage));
+    CGContextConcatCTM(ctx, transform);
+    switch (image.imageOrientation) {
+        case UIImageOrientationLeft:
+        case UIImageOrientationLeftMirrored:
+        case UIImageOrientationRight:
+        case UIImageOrientationRightMirrored:
+            // Grr...
+            CGContextDrawImage(ctx, CGRectMake(0,0,image.size.height,image.size.width), image.CGImage);
+            break;
+            
+        default:
+            CGContextDrawImage(ctx, CGRectMake(0,0,image.size.width,image.size.height), image.CGImage);
+            break;
+    }
+    
+    // And now we just create a new UIImage from the drawing context
+    CGImageRef cgimg = CGBitmapContextCreateImage(ctx);
+    UIImage *img = [UIImage imageWithCGImage:cgimg];
+    CGContextRelease(ctx);
+    CGImageRelease(cgimg);
+    return img;
+}
+
+
++ (UIImage *)imageByCropping:(UIImage *)imageToCrop toRect:(CGRect)rect {
+    CGImageRef imageRef = CGImageCreateWithImageInRect(
+                                                       [imageToCrop CGImage], rect);
+    UIImage *cropped =[UIImage imageWithCGImage:imageRef];
+    CGImageRelease(imageRef);
+    return cropped;
+}
+
++ (UIImage *)resizeImage:(UIImage *)img rect:(CGRect)rect {
+    UIGraphicsBeginImageContext(rect.size);
+    
+    [img drawInRect:rect];
+    UIImage* resizedImage = UIGraphicsGetImageFromCurrentImageContext();
+    
+    UIGraphicsEndImageContext();
+    return resizedImage;
+}
+
++ (UIImage*)drawImage:(UIImage*)sourceImage Image:(UIImage*)image Pos:(CGPoint)pos {
+    
+    // make graphics context
+    UIGraphicsBeginImageContext(sourceImage.size);
+    
+    // draw original image
+    CGRect rect;
+    rect.origin = CGPointZero;
+    rect.size = sourceImage.size;
+    [sourceImage drawInRect:rect];
+    
+    // draw new image
+    rect.origin = pos;
+    rect.size = image.size;
+    [image drawInRect:rect];
+    
+    // get result
+    UIImage *resultImg = UIGraphicsGetImageFromCurrentImageContext();
+    
+    UIGraphicsEndImageContext();
+    
+    return resultImg;
+}
+
++ (UIImage *)compositeImage:(UIImage *)image overlay:(UIImage *)overlay {
+    int w = (int)image.size.width;
+    int h = (int)image.size.height;
+    
+    if(w != (int)overlay.size.width || h != (int)overlay.size.height)
+        return nil;
+
+    unsigned char *img = [self getRGBFromUIImage:image channel:4];
+    unsigned char *ovr = [self getRGBFromUIImage:overlay channel:4];
+
+    for(int i=0; i<w * h; ++i) {
+        int a = ovr[4*i+3];
+        img[4*i+0] = (a * ovr[4*i+0] + (255-a) * img[4*i+0])/255;
+        img[4*i+1] = (a * ovr[4*i+1] + (255-a) * img[4*i+1])/255;
+        img[4*i+2] = (a * ovr[4*i+2] + (255-a) * img[4*i+2])/255;
+        if(a > img[4*i+3])
+            img[4*i+3] = a;
+    }
+    free(ovr);
+    
+    UIImage *result = [self getUIImageFromRGBA:w height:h bytePerRow:4*w rgba:img needAlpha:YES];
+    free(img);
+
+    return result;
+}
+
++ (UIImage *)maskImage:(UIImage *)image mask:(UIImage *)mask {
+    int w = (int)image.size.width;
+    int h = (int)image.size.height;
+    
+    if(w != (int)mask.size.width || h != (int)mask.size.height)
+        return nil;
+    
+    unsigned char *img = [self getRGBFromUIImage:image channel:4];
+    unsigned char *msk = [self getRGBFromUIImage:mask channel:4];
+    
+    for(int i=0; i<w * h; ++i) {
+        img[4*i+3] = 255 - msk[4*i+3];
+    }
+    free(msk);
+    
+    UIImage *result = [self getUIImageFromRGBA:w height:h bytePerRow:4*w rgba:img needAlpha:YES];
+    free(img);
+    
+    return result;
+}
+
++ (UIImage *)adjustImage:(UIImage *)image ev:(float)ev {
+    CIImage *ciImage = [[CIImage alloc] initWithImage:image];
+    CIFilter *ciFilter = [CIFilter filterWithName:@"CIExposureAdjust"
+                                    keysAndValues:kCIInputImageKey, ciImage,
+                          @"inputEV", [NSNumber numberWithFloat:ev],
+                          nil];
+
+    CIContext *ciContext = [CIContext contextWithOptions:nil];
+    CGImageRef imgRef = [ciContext createCGImage:[ciFilter outputImage] fromRect:[[ciFilter outputImage] extent]];
+    UIImage *resultImage = [UIImage imageWithCGImage:imgRef scale:1.0f orientation:UIImageOrientationUp];
+    CGImageRelease(imgRef);
+
+    return resultImage;
+}
+
++ (UIImage *)adjustColor:(UIImage *)image
+               saturation:(float)saturation brightness:(float)brightness contrast:(float)contrast {
+    CIImage *ciImage = [[CIImage alloc] initWithImage:image];
+    CIFilter *ciFilter = [CIFilter filterWithName:@"CIColorControls"];
+    [ciFilter setDefaults];
+    [ciFilter setValue:ciImage forKey:@"inputImage"];
+    [ciFilter setValue:[NSNumber numberWithFloat:saturation] forKey:@"inputSaturation"];
+    [ciFilter setValue:[NSNumber numberWithFloat:brightness] forKey:@"inputBrightness"];
+    [ciFilter setValue:[NSNumber numberWithFloat:contrast] forKey:@"inputContrast"];
+    
+    CIContext *ciContext = [CIContext contextWithOptions:nil];
+    CGImageRef imgRef = [ciContext createCGImage:[ciFilter outputImage] fromRect:[[ciFilter outputImage] extent]];
+    UIImage *resultImage = [UIImage imageWithCGImage:imgRef scale:1.0f orientation:UIImageOrientationUp];
+    CGImageRelease(imgRef);
+    
+    return resultImage;
+}
+
++ (UIImage *)flipUIImage:(UIImage *)image {
+    CGAffineTransform transform = CGAffineTransformIdentity;
+    
+    transform = CGAffineTransformTranslate(transform, image.size.width, image.size.height);
+    transform = CGAffineTransformRotate(transform, M_PI);
+    
+    
+    // Now we draw the underlying CGImage into a new context, applying the transform
+    // calculated above.
+    CGContextRef ctx = CGBitmapContextCreate(NULL, image.size.width, image.size.height,
+                                             CGImageGetBitsPerComponent(image.CGImage), 0,
+                                             CGImageGetColorSpace(image.CGImage),
+                                             CGImageGetBitmapInfo(image.CGImage));
+    CGContextConcatCTM(ctx, transform);
+    CGContextDrawImage(ctx, CGRectMake(0,0,image.size.width,image.size.height), image.CGImage);
+    
+    // And now we just create a new UIImage from the drawing context
+    CGImageRef cgimg = CGBitmapContextCreateImage(ctx);
+    UIImage *img = [UIImage imageWithCGImage:cgimg];
+    CGContextRelease(ctx);
+    CGImageRelease(cgimg);
+    return img;
+}
+
++ (UIImage *)screenCaptureWithView:(UIView *)view rect:(CGRect)rect{
+    UIImage *capture;
+    UIGraphicsBeginImageContextWithOptions(rect.size, NO, 1.0);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    CGContextTranslateCTM(context, -rect.origin.x, -rect.origin.y);
+    [view.layer renderInContext:UIGraphicsGetCurrentContext()];
+    capture = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return capture;
+}
+
++ (unsigned char *)getRGBFromUIImage:(UIImage *)image channel:(int)channel {
+    unsigned char *rgb;
+    int w = image.size.width;
+    int h = image.size.height;
+    
+    CGImageRef inCgImage = [image CGImage];
+    size_t bytesPerRow = CGImageGetBytesPerRow(inCgImage);
+    CGDataProviderRef inDataProvider = CGImageGetDataProvider(inCgImage);
+    CFDataRef inData = CGDataProviderCopyData(inDataProvider);
+    UInt8 *inPixels = (UInt8*)CFDataGetBytePtr(inData);
+    
+    int size = channel * w * h;
+    if((rgb = (unsigned char *)malloc(size)) == NULL) {
+        CFRelease(inData);
+        return nil;
+    }
+    
+    CGImageAlphaInfo alphaInfo = CGImageGetAlphaInfo(inCgImage);
+    
+    if(alphaInfo == kCGImageAlphaPremultipliedFirst ||
+       alphaInfo == kCGImageAlphaFirst) {
+        for(int y=0; y!=h; ++y){
+            for(int x = 0; x!=w; ++x){
+                int idx[] = {2, 1, 0, 3};
+                UInt8* buf = inPixels + y * bytesPerRow + x * 4;
+                for(int c=0; c<channel; ++c)
+                    rgb[(y*w+x)*channel+c] = buf[idx[c]];
+            }
+        }
+    } else if(alphaInfo == kCGImageAlphaNoneSkipFirst) {
+        for(int y=0; y!=h; ++y){
+            for(int x = 0; x!=w; ++x){
+                int idx[] = {1, 2, 3, 0};
+                UInt8* buf = inPixels + y * bytesPerRow + x * 4;
+                for(int c=0; c<channel; ++c)
+                    rgb[(y*w+x)*channel+c] = buf[idx[c]];
+            }
+        }
+    } else {
+        for(int y=0; y!=h; ++y){
+            for(int x = 0; x!=w; ++x){
+                UInt8* buf = inPixels + y * bytesPerRow + x * 4;
+                for(int c=0; c<channel; ++c)
+                    rgb[(y*w+x)*channel+c] = buf[c];
+            }
+        }
+    }
+    
+    CFRelease(inData);
+    return rgb;
+}
+
++ (void)getRGBAOfUIImageLocation:(UIImage *)image x:(int)x y:(int)y rgba:(unsigned char *)rgba {
+    CGImageRef inCgImage = [image CGImage];
+    size_t bytesPerRow = CGImageGetBytesPerRow(inCgImage);
+    CGDataProviderRef inDataProvider = CGImageGetDataProvider(inCgImage);
+    CFDataRef inData = CGDataProviderCopyData(inDataProvider);
+    UInt8 *inPixels = (UInt8*)CFDataGetBytePtr(inData);
+    CGImageAlphaInfo alphaInfo = CGImageGetAlphaInfo(inCgImage);
+    UInt8* buf = inPixels + y * bytesPerRow + x * 4;
+    
+    if(alphaInfo == kCGImageAlphaPremultipliedFirst ||
+       alphaInfo == kCGImageAlphaFirst) {
+        int idx[] = {2, 1, 0, 3};
+        for(int c=0; c<4; ++c)
+            rgba[c] = buf[idx[c]];
+    } else if(alphaInfo == kCGImageAlphaNoneSkipFirst) {
+        int idx[] = {1, 2, 3, 0};
+        for(int c=0; c<4; ++c)
+            rgba[c] = buf[idx[c]];
+    } else {
+        for(int c=0; c<4; ++c)
+            rgba[c] = buf[c];
+    }
+}
+
+static void bufferFree(void *info, const void *data, size_t size) {
+    free((void *)data);
+}
+
+
++ (UIImage *)getUIImageFromRGB:(int)w height:(int)h bytePerRow:(int)bytes rgb:(unsigned char *)rgb {
+    unsigned char *rgba = (unsigned char *)malloc(4 * w * h);
+    if(rgba == NULL) return NULL;
+    
+    for(int i=0; i<h; ++i) {
+        unsigned char *src = rgb + i * bytes;
+        unsigned char *dst = rgba + i * 4 * w;
+        for(int j=0; j<w; ++j) {
+            dst[4*j+0] = src[3*j+0];
+            dst[4*j+1] = src[3*j+1];
+            dst[4*j+2] = src[3*j+2];
+            dst[4*j+3] = 255;
+        }
+    }
+    
+    CGBitmapInfo bitmapInfo = kCGBitmapByteOrderDefault;
+    CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, rgba, 4 * w * h, bufferFree);
+    CGImageRef imageRef = CGImageCreate(w, h, 8, 32, 4*w,
+                                        CGColorSpaceCreateDeviceRGB(), bitmapInfo, provider,
+                                        NULL, YES, kCGRenderingIntentDefault);
+    UIImage *image = [UIImage imageWithCGImage:imageRef];
+    CGImageRelease(imageRef);
+    CGDataProviderRelease(provider);
+    return image;
+    
+}
+
++ (UIImage *)getUIImageFromRGBA:(int)w height:(int)h bytePerRow:(int)bytes rgba:(unsigned char *)rgba needAlpha:(BOOL)needAlpa;  {
+    unsigned char *buf = (unsigned char *)malloc(h * bytes);
+    if(buf == NULL) return NULL;
+
+    memcpy(buf, rgba, h * bytes);
+    
+    CGBitmapInfo bitmapInfo = (needAlpa)? (CGBitmapInfo)kCGImageAlphaLast : kCGBitmapByteOrderDefault;
+    CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, buf, h * bytes, bufferFree);
+    CGImageRef imageRef = CGImageCreate(w, h, 8, 32, bytes,
+                                        CGColorSpaceCreateDeviceRGB(), bitmapInfo, provider,
+                                        NULL, YES, kCGRenderingIntentDefault);
+    UIImage *image = [UIImage imageWithCGImage:imageRef];
+    CGImageRelease(imageRef);
+    CGDataProviderRelease(provider);
+    return image;
+}
+
+
++ (BOOL)flipScanlineOrder:(unsigned char *)buf w:(int)w h:(int)h bytePerRow:(int)bytes {
+    unsigned char *tmp;
+    
+    if((tmp = (unsigned char *)malloc(bytes)) == NULL) {
+        perror("malloc");
+        return NO;
+    }
+    
+    for(int i=0; i!=h/2; ++i) {
+        memcpy(tmp, buf+i*bytes, bytes);
+        memcpy(buf+i*bytes, buf+(h-i-1)*bytes, bytes);
+        memcpy(buf+(h-i-1)*bytes, tmp, bytes);
+    }
+    free(tmp);
+    return YES;
+}
+
++ (unsigned char *)BGRAToRGB:(unsigned char *)bgra w:(int)w h:(int)h bytePerRow:(int)bytes {
+    unsigned char *rgb = (unsigned char *)malloc(3*w*h);
+    if(rgb == NULL) return NULL;
+    
+    for(int i=0; i<h; ++i) {
+        unsigned char *src = bgra + i * bytes;
+        unsigned char *dst = rgb + i * 3 * w;
+        for(int j=0; j<w; ++j) {
+            dst[3*j+0] = src[4*j+2];
+            dst[3*j+1] = src[4*j+1];
+            dst[3*j+2] = src[4*j+0];
+        }
+    }
+    return rgb;
+}
+
+
+@end

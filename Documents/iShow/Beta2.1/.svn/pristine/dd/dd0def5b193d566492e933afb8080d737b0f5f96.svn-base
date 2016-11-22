@@ -1,0 +1,227 @@
+//
+//  SearchViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/20.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "SearchViewController.h"
+#import "SearchTableViewCell.h"
+#import "ShareSearshModel.h"
+#import "ShareSearchRootModel.h"
+#import "SearchCollectionView.h"
+@interface SearchViewController ()<UITableViewDelegate,UITableViewDataSource>
+@property (weak, nonatomic) IBOutlet UITextField *searchTextField;
+@property (strong, nonatomic) UITableView *tableView;
+@property (weak, nonatomic) IBOutlet UIView *headerSearchView;
+@property (nonatomic,strong) NSArray *imageNameArr;
+@property (nonatomic,strong)NSMutableArray *testArr;
+@property (nonatomic,assign) NSInteger countArr;
+@property (weak, nonatomic) IBOutlet UITextField *textField;
+//@property (weak, nonatomic) IBOutlet UIButton *cancelTextBut;
+@property (weak, nonatomic) IBOutlet UIButton *cancelTextBut;
+@property (strong, nonatomic) NSMutableArray *dataSource;
+@property (strong, nonatomic) SearchCollectionView *searchCollection;
+//@property (strong, nonatomic) NSString *keyword;
+@end
+static NSString *const myCell = @"searchCellID";
+static NSInteger butTag = 1150;
+@implementation SearchViewController
+- (void) viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+    [self.navigationController setNavigationBarHidden:YES animated:YES];
+}
+- (void) viewDidDisappear:(BOOL)animated
+{
+    [super viewDidDisappear:animated];
+    [self.navigationController setNavigationBarHidden:NO animated:YES];
+}
+-(instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        self.hidesBottomBarWhenPushed = YES;
+    }
+    return self;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view from its nib.
+    _dataSource = [NSMutableArray array];
+    [_textField addTarget:self action:@selector(responsToChangeText:) forControlEvents:UIControlEventEditingChanged];
+    [_searchTextField becomeFirstResponder];
+    _headerSearchView.clipsToBounds = YES;
+    _headerSearchView.layer.cornerRadius = 4;
+    [self initializeUserInterSource];
+    [self initializeTopSearches];
+
+}
+- (void)initializeUserInterSource {
+    _imageNameArr = @[@"one",@"two",@"three",@"four",@"five",@"six"];
+//    _testArr = [NSMutableArray arrayWithArray:@[@"#iphone 7#",@"#吴悠被打#",@"四小花旦",@"纽约时装",@"暴走街拍",@"时装男士杂志"]];
+    _testArr = [NSMutableArray array];
+    _countArr = 0;
+}
+
+//static NSInteger count = 0;
+- (void)initializeUserInterface {
+    for (int j = 0; j < 3; j ++) {
+        for (int i = 0; i < 2; i ++) {
+            [self addHotSearchWith:_testArr[_countArr] point:CGPointMake(30 + kScreenW/2.f * i, 105 + 42 * j) image:_imageNameArr[_countArr]];
+            _countArr++;
+        }
+    }
+}
+- (void)addHotSearchWith:(NSString *)title point:(CGPoint)point image:(NSString *)image {
+    UIButton *but = [UIButton buttonWithType:UIButtonTypeCustom];
+//    but.frame = frame;
+    but.bounds = CGRectMake(0, 0, 150, 22);
+    but.center = CGPointMake(point.x +80, point.y);
+//    [but setTitle:title forState:UIControlStateNormal];
+//    [but setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+//    [but setImage:[UIImage imageNamed:image] forState:UIControlStateNormal];
+//    but.backgroundColor = [UIColor orangeColor];
+//    but.titleLabel.font = [UIFont systemFontOfSize:14];
+//    but.titleLabel.textAlignment = NSTextAlignmentLeft;
+//    [but setTitleEdgeInsets:UIEdgeInsetsMake(0, 0, 0, -10)];
+    but.tag = butTag++ ;
+    but.adjustsImageWhenHighlighted = NO;
+    [but addTarget:self action:@selector(selector_search:) forControlEvents:UIControlEventTouchUpInside];
+    UILabel *label = [[UILabel alloc]initWithFrame:CGRectMake(10, 0, 150, 22)];
+    label.text = title;
+    label.font = [UIFont systemFontOfSize:14];
+    label.textAlignment = NSTextAlignmentLeft;
+    [but addSubview:label];
+    [self.view addSubview:but];
+    
+    UIImageView *numberImage = [[UIImageView alloc]init];
+    numberImage.bounds = CGRectMake(0, 0, 22, 22);
+    numberImage.center = point;
+    numberImage.image = [UIImage imageNamed:image];
+    [self.view addSubview:numberImage];
+}
+
+#pragma mark -- Event
+
+- (void)selector_search:(UIButton *)sender {
+    NSLog(@"-----%ld",sender.tag);
+    
+}
+- (IBAction)actionCancelText:(UIButton *)sender {
+    self.textField.text = @"";
+    [self.tableView removeFromSuperview];
+    [self.searchCollection removeFromSuperview];
+    [self.textField becomeFirstResponder];
+}
+- (void)responsToChangeText:(UITextField *)textFie {
+//    NSLog(@"%@",textFie.text);
+    if (textFie.text.length > 0) {
+        [self.view addSubview:self.tableView];
+        [[NetworkingHelper shareINstance] GET:@"Share/search" dict:@{@"keyword":textFie.text} succeed:^(id data) {
+            ShareListRootModel *rootModel = [[ShareListRootModel alloc]initWithDictionary:data[@"values"] error:nil];
+            [_dataSource addObjectsFromArray:rootModel.list];
+            [self.tableView reloadData];
+            //        NSLog(@"%@",data);
+        } failure:^(NSError *error) {
+            
+        }];
+    } else {
+        [self.tableView removeFromSuperview];
+    }
+}
+- (void)initializeTopSearches
+ {
+     [_testArr removeAllObjects];
+    [[NetworkingHelper shareINstance] GET:@"Share/topSearches" dict:nil succeed:^(id data) {
+//        NSLog(@"---- %@",data);
+//        if (data) {
+        NSArray *array = data[@"values"][@"list"];
+        for ( int i = 0; i < array.count; i++) {
+            [_testArr addObject:array[i][@"keyword"]];
+//            NSLog(@"%@",array[i][@"keyword"]);
+        }
+        [self initializeUserInterface];
+    } failure:^(NSError *error) {
+        [_testArr addObjectsFromArray:@[@"#iphone 7#",@"#吴悠被打#",@"四小花旦",@"纽约时装",@"暴走街拍",@"时装男士杂志"]];
+        [self initializeUserInterface];
+
+    }];
+    
+}
+
+- (IBAction)canceiNextBut:(UIButton *)sender {
+//    [self dismissViewControllerAnimated:NO completion:nil];
+//    [self popoverPresentationController];
+    [self.navigationController popViewControllerAnimated:NO];
+}
+
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [self.view endEditing:YES];
+}
+
+#pragma mark -- UITableViewDelegate,UITableViewDataSource
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    _searchCollection = [[SearchCollectionView alloc]initWithFrame:CGRectMake(0, 64, kScreenW, kScreenH- 64)];
+    ShareSearshModel *model = _dataSource[indexPath.row];
+    _searchCollection.share_id = model.share_id;
+    _searchCollection.keyword = _textField.text;
+    _searchCollection.backgroundColor = kColor(242, 242, 242);
+    [self.view addSubview:_searchCollection];
+    [self.tableView removeFromSuperview];
+    [self.view endEditing:YES];
+}
+
+- (void)tableView:(UITableView *)tableView willBeginEditingRowAtIndexPath:(NSIndexPath *)indexPath {
+    [self.view endEditing:YES];
+}
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+//    NSLog(@"4");
+    [self.view endEditing:YES];
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return self.dataSource.count;
+//    return 10;
+}
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+
+    SearchTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:myCell ];
+    if (!cell) {
+        cell = [[SearchTableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:myCell];
+    }
+    cell.model = _dataSource[indexPath.row];
+//    cell.backgroundColor = kRandomColor;
+    return cell;
+    
+}
+
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return 43;
+}
+
+
+#pragma mark -Getter
+- (UITableView *)tableView {
+    if (!_tableView) {
+        _tableView = [[UITableView alloc]initWithFrame:CGRectMake(0, 64, kScreenW, kScreenH- 64) ];
+        //设置数据源
+        _tableView.dataSource = self;
+        //设置代理
+        _tableView.delegate = self;
+        //设置行高
+//        _tableView.rowHeight = 43;
+        //设置分割线
+        _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+//        _tableView.pagingEnabled = YES;
+        [_tableView registerClass:[SearchTableViewCell class] forCellReuseIdentifier:myCell];
+    }
+    return _tableView;
+}
+
+
+
+
+@end

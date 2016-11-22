@@ -1,0 +1,221 @@
+//
+//  VideoDetailCell.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "VideoDetailCell.h"
+#import "CareFansInfoController.h"
+#import "UserDetailController.h"
+#import "ShareTopicsModel.h"
+#import <AVKit/AVKit.h>
+#import "CommentController.h"
+//配置视频播放器的player属性时,需要导入AVFoundation框架来构建对象
+#import <AVFoundation/AVFoundation.h>
+
+
+@interface VideoDetailCell ()<AlertContentViewYesButtonClickDelegate>
+{
+    AVPlayerViewController *_playerViewController;/**<  视频播放器 */
+}
+@property (weak, nonatomic) IBOutlet UIImageView *headerImageView;
+@property (weak, nonatomic) IBOutlet UILabel *userNameLabel;
+@property (weak, nonatomic) IBOutlet UILabel *userTimeLabel;
+@property (weak, nonatomic) IBOutlet UILabel *userCountLabel;
+@property (weak, nonatomic) IBOutlet UIButton *attentionBut;
+@property (weak, nonatomic) IBOutlet UILabel *titleLabel;
+@property (weak, nonatomic) IBOutlet UIButton *commentBut;
+@property (weak, nonatomic) IBOutlet UIButton *upBut;
+@property (weak, nonatomic) IBOutlet UIView *videoView;
+@property (weak, nonatomic) IBOutlet UILabel *upLabel;
+@property (weak, nonatomic) IBOutlet UIButton *selfBut;
+@property (weak, nonatomic) IBOutlet UILabel *commentLabel;
+@property (nonatomic ,strong ) NSMutableArray *topicsArray;
+@property (weak, nonatomic) IBOutlet UIImageView *videoImage;
+@property (nonatomic, strong) AlertUtils *utils;
+@property (nonatomic, strong) AlertView *alert;
+
+@end
+
+@implementation VideoDetailCell
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    //定义背景颜色
+    // self.backgroundColor = [UIColor groupTableViewBackgroundColor];
+    // Initialization code
+    _topicsArray = [NSMutableArray array];
+    _headerImageView.clipsToBounds = YES;
+    _headerImageView.layer.cornerRadius = _headerImageView.width/2.0;
+    
+    //1.初始化视频播放器
+    _playerViewController = [AVPlayerViewController new];
+    //2.设置视频播放器的大小和位置
+    _playerViewController.view.frame = CGRectMake(5, CGRectGetMaxY(_headerImageView.frame) + 15, self.width - 10  , CGRectGetMinY(_titleLabel.frame)- 40*kDistanceWidthRatio- CGRectGetMaxY(_headerImageView.frame) - 10);
+    _playerViewController.showsPlaybackControls = YES;
+    //6.将播放器呈现在界面上
+    [[self viewController] addChildViewController:_playerViewController];
+    [self addSubview:_playerViewController.view];
+    self.videoImage.userInteractionEnabled = YES;
+//    AVLayerVideoGravityResizeAspect
+//    [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(isPlayer) name:@"anjscnaskjn" object:nil];
+    
+}
+//- (void)isPlayer {
+//    NSLog(@"a");
+    
+//}
+//评论
+- (IBAction)commentButtonClick:(id)sender {
+//    CareFansInfoController *controller=[[CareFansInfoController alloc] init];
+//    controller.barTextType=3;
+    CommentController *comment = [[CommentController alloc]init];
+//    ShareVideosInfoModel *model = self.dataSource[indexPath.row];
+    comment.share_id = [_detailModel.share_id intValue];
+    [[self viewController].navigationController pushViewController:comment animated:YES];
+
+//    [[self viewController].navigationController pushViewController:controller animated:YES];
+}
+
+//用户详情
+- (IBAction)userDetailButtonClick:(id)sender {
+    [ConfigModel shareConfigModel].user_id=[NSNumber numberWithInt:_detailModel.user_id.intValue];
+    UserDetailController *controller=[[UserDetailController alloc] init];
+    [[self viewController].navigationController pushViewController:controller animated:YES];
+}
+
+- (UIViewController *)viewController {
+    for (UIView* next = [self superview]; next; next = next.superview) {
+        UIResponder *nextResponder = [next nextResponder];
+        if ([nextResponder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController *)nextResponder;
+        }
+    }
+    return nil;
+}
+- (void)setDetailModel:(ShareVideosInfoModel *)detailModel {
+    _detailModel = detailModel;
+    [_topicsArray removeAllObjects];
+    [_headerImageView sd_setImageWithURL:[NSURL URLWithString:_detailModel.user_image] placeholderImage:[UIImage imageNamed:@"test"]];
+    _userNameLabel.text = _detailModel.user_nick_name;
+    _titleLabel.text = _detailModel.share_name;
+    _upLabel.text = _detailModel.video_zan_count;
+    _commentLabel.text = _detailModel.comment_count;
+    _userTimeLabel.text=_detailModel.share_uptime;
+    [_videoImage sd_setImageWithURL:[NSURL URLWithString:_detailModel.share_image] placeholderImage:[UIImage imageNamed:@"1.jpg"]];
+    _userCountLabel.text = [NSString stringWithFormat:@"%d 次搜索",[_detailModel.video_play_count intValue]] ;
+    if (_detailModel.is_follow.integerValue == 1) {
+        self.attentionBut.selected = YES;
+    } else {
+        self.attentionBut.selected = NO;
+    }
+    NSURL *url = [NSURL URLWithString:detailModel.video_url];
+//  4.配置媒体源
+    _playerViewController.player = [AVPlayer playerWithURL:url];
+    [_playerViewController.player pause];
+
+}
+
+//关注
+- (IBAction)careButtonClick:(id)sender {
+//    NSLog(@"1111  %@",token);
+//    if ([token isEqualToString:@""]||token==nil) {
+//        [self showAlertView];
+//    }else{
+    
+        if (self.attentionBut.selected==NO) {
+            NSDictionary *dict=@{@"follow_id":_detailModel.user_id};
+            [[NetworkingHelper shareINstance] GET:@"User/followUser" dict:dict succeed:^(id data) {
+              //  self.attentionBut.selected = !self.attentionBut.selected;
+                NSNumber *num=[data objectForKey:@"state"];
+                if (num.integerValue == 1) {
+                    
+                    self.attentionBut.selected=!self.attentionBut.selected;
+                    self.detailModel.is_follow=@"1";//关注成功，吧model数据源内容改变，不然cell滑动的过程关注按钮的状态还是会变
+                }else{
+                    NSNumber *codeNum=[data objectForKey:@"errno"];
+                    if (codeNum.integerValue==70000) {
+                        self.attentionBut.selected=!self.attentionBut.selected;
+                        self.detailModel.is_follow=@"1";//操作失败的意味已经关注过了，所以这时也需要把关注按钮的状态改变，model的内容也要改变
+                    }
+                }
+               
+            } failure:^(NSError *error) {
+                
+            }];
+        } else{
+            self.alert=[AlertView instanceAlertView];
+            self.alert.delegate=self;
+            self.alert.layer.cornerRadius=20;
+            self.utils=[[AlertUtils alloc] init];
+            self.utils.contentView=self.alert;
+            self.alert.describeLabel.text=@"确定不再关注此人?";
+            [self.utils show];
+        }
+  //  }
+}
+//这里处理数据，如果选择YES,才会处理数据
+-(void)alertContentYesButtonClick{
+    
+    NSDictionary *dict=@{@"follow_id":self.detailModel.user_id};
+
+        self.alert.describeLabel.text=@"确定不再关注此人?";
+
+    [[NetworkingHelper shareINstance] GET:@"User/cancelFollowUser" dict:dict succeed:^(id data) {
+        if (data) {
+            NSNumber *num=[data objectForKey:@"state"];
+            if (num.integerValue == 1) {
+                
+                self.attentionBut.selected=!self.attentionBut.selected;
+                self.detailModel.is_follow=@"0";
+            }else{
+                NSNumber *codeNum=[data objectForKey:@"errno"];
+                if (codeNum.integerValue==70000) {
+                    self.attentionBut.selected=!self.attentionBut.selected;
+                    self.detailModel.is_follow=@"0";//操作失败的意味已经关注过了，所以这时也需要把关注按钮的状态改变，model的内容也要改变
+                }
+            }
+        }
+    } failure:^(NSError *error) {
+        
+    }];
+}
+
+//分享
+- (IBAction)shareButtonClick:(id)sender {
+//    if ([token isEqualToString:@""]||token==nil) {
+//        [self showAlertView];
+//    }else{
+//        
+//    }
+}
+//点赞
+- (IBAction)praiseButtonClick:(id)sender {
+    
+//    if ([token isEqualToString:@""]||token==nil) {
+//        [self showAlertView];
+//    }else{
+    
+        //    NSNumber *shareID=[NSNumber numberWithInt:2];
+        NSDictionary *dict=@{@"video_id":_detailModel.video_id};
+        [[NetworkingHelper shareINstance] GET:@"Video/zanVideo" dict:dict succeedData:^(id data) {
+            if (data) {
+                
+            }
+        } failure:^(NSError *error) {
+            
+        }];
+  //  }
+}
+
+-(void)showAlertView{
+    AlertUtils *utils=[[AlertUtils alloc] init];
+    AlertView *view=[AlertView instanceAlertView];
+    view.layer.cornerRadius=20;
+    view.describeLabel.text=@"还未进行登录，请先登录";
+    utils.contentView=view;
+    [utils show];
+}
+@end

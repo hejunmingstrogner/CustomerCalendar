@@ -1,0 +1,41 @@
+//
+//  SecoundCell.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/23.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "SecoundCell.h"
+#import "UIImageView+WebCache.h"
+@interface SecoundCell ()
+@property (weak, nonatomic) IBOutlet UIImageView *imageView;
+@property (weak, nonatomic) IBOutlet UILabel *countLabel;
+@property (weak, nonatomic) IBOutlet UILabel *titleLabel;
+@property (weak, nonatomic) IBOutlet UILabel *priceLabel;
+
+@end
+
+@implementation SecoundCell
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    // Initialization code
+    
+//    _imageView.backgroundColor = [UIColor colorWithWhite:0 alpha:0.2];
+    _countLabel.backgroundColor = [UIColor colorWithWhite:0 alpha:0.2];
+    
+}
+
+- (void)setModel:(ThemeListModel *)model {
+    
+    _model = model;
+    
+    _titleLabel.text = _model.theme_name;
+    [_imageView sd_setImageWithURL:[NSURL URLWithString:_model.theme_image] placeholderImage:[UIImage imageNamed:@"1.jpg"]];
+    
+    
+    
+}
+
+@end

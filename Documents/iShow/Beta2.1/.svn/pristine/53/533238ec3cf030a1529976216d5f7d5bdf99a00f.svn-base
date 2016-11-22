@@ -1,0 +1,53 @@
+//
+//  CommentTableViewCell.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/18.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "CommentTableViewCell.h"
+
+@interface CommentTableViewCell ()
+@property (weak, nonatomic) IBOutlet UIImageView *headerImageView;
+@property (weak, nonatomic) IBOutlet UILabel *nameLabel;
+@property (weak, nonatomic) IBOutlet UILabel *contentLabel;
+@property (strong, nonatomic)  UILabel *timeLabel;
+
+@end
+
+
+@implementation CommentTableViewCell
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    _headerImageView.clipsToBounds = YES;
+    _headerImageView.layer.cornerRadius = _headerImageView.width/2.f;
+    _timeLabel = [[UILabel alloc]init];
+    _timeLabel.font = [UIFont systemFontOfSize:13];
+    _timeLabel.textColor = [UIColor grayColor];
+    [self addSubview:_timeLabel];
+    // Initialization code
+//    self.backgroundView = kColor(242, 242, 242);
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+    // Configure the view for the selected state
+}
+
+- (void)setModel:(CommentModel *)model {
+    _model = model;
+    self.titleLabel.text = _model.comment_content;
+    [_headerImageView sd_setImageWithURL:[NSURL URLWithString:_model.user_image] placeholderImage:[UIImage imageNamed:@"test"]];
+    _nameLabel.text = _model.user_nick_name;
+    _timeLabel.text = _model.comment_time;
+    CGSize size = [self.timeLabel.text sizeWithAttributes:[NSDictionary dictionaryWithObjectsAndKeys:[UIFont systemFontOfSize:13],NSFontAttributeName, nil]];
+    _timeLabel.frame = CGRectMake(self.width, 10, size.width+5, 21);
+    
+//    NSLog(@"%lf",size.width);
+//    _timeLabel.backgroundColor = [UIColor greenColor];
+}
+
+@end

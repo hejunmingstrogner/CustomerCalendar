@@ -1,0 +1,13 @@
+//
+//  ZCYRecommendViewController.h
+//  VideoProject
+//
+//  Created by once_CH on 16/9/6.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "TableViewBaseController.h"
+
+@interface ZCYRecommendViewController : TableViewBaseController
+
+@end

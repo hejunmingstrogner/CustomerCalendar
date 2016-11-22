@@ -1,0 +1,61 @@
+//
+//  HotDetailCell.m
+//  VideoProject
+//
+//  Created by once_CH on 16/9/8.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "HotDetailCell.h"
+#import "XYVideoPlayerView.h"
+#import "XYVideoModel.h"
+@interface HotDetailCell ()
+//<XYVideoPlayerViewDelegate>
+@property (nonatomic, strong) XYVideoPlayerView *playerView;
+
+@end
+static BOOL palyer = YES;
+@implementation HotDetailCell
+//析构函数退出的时候移除播放
+- (void)dealloc {
+    [self.playerView deallocPlayer];
+}
+- (instancetype)initWithFrame:(CGRect)frame
+{
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self initChildCell];
+    }
+    return self;
+}
+- (void)initChildCell {
+    self.backgroundColor = kRandomColor;
+    if (palyer) {
+        [self setUI];
+    }
+}
+- (void)setUI{
+    palyer = NO;
+//    self.videoBackView=[[UIView alloc] initWithFrame:CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, 300)];
+//    self.videoBackView.backgroundColor=[UIColor yellowColor];
+//    [self.view addSubview:self.videoBackView];
+    
+    
+    // 创建视频播放控件
+//    _playerView = [[UIView alloc]initWithFrame:self.frame];
+//    [self addSubview:_headPlayerView];
+    
+    self.playerView = [XYVideoPlayerView videoPlayerView];
+//    self.playerView.delegate = self;
+    [self.contentView addSubview:self.playerView];
+//    self.playerView = self.playerView;
+    
+    XYVideoModel *model = [[XYVideoModel alloc]init];
+    model.url = [NSURL URLWithString:@"http://bos.nj.bpc.baidu.com/tieba-smallvideo/11772_3c435014fb2dd9a5fd56a57cc369f6a0.mp4"];
+    model.name = @"video1";
+    self.playerView.videoModel = model;
+    //[self.playerView changeCurrentplayerItemWithVideoModel:model];
+    
+}
+
+@end

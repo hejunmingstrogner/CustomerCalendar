@@ -1,0 +1,81 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#import "VideoFrame.h"
+#include <OpenGLES/ES1/gl.h>
+#include <OpenGLES/ES1/glext.h>
+
+@interface VideoFrame () {
+    CMSampleBufferRef mSampleBufferRef;
+    CVImageBufferRef  mImageBufferRef;
+    int               mFrameNo;
+    
+    
+}
+@end
+
+@implementation VideoFrame
+/*- (id)init:(CMSampleBufferRef)ref {
+    self = [super init];
+    if(self){
+        sampleBufferRef_ = ref;
+        imageBufferRef_ = CMSampleBufferGetImageBuffer(sampleBufferRef_);
+    }
+    return self;
+}*/
+- (id)initWithSampleBuffer:(CMSampleBufferRef)ref frameNo:(int)frameNo{
+    self = [super init];
+    if(self){
+        mSampleBufferRef = ref;
+        mImageBufferRef  = CMSampleBufferGetImageBuffer(mSampleBufferRef);
+        mFrameNo         = frameNo;
+    }
+    return self;
+}
+
+- (void) dealloc {
+    [self releaseFrame];
+}
+- (void) releaseFrame {
+    //NSLog(@"Deallocate VideoFrame");
+    if(mImageBufferRef != nil){
+        CVPixelBufferUnlockBaseAddress(mImageBufferRef, 0);
+        mImageBufferRef  = nil;
+    }
+    if(mSampleBufferRef != nil){
+        CMSampleBufferInvalidate(mSampleBufferRef);
+        CFRelease(mSampleBufferRef);
+        mSampleBufferRef  = nil;
+    }
+}
+
+
+- (int)getWidth {
+    size_t width = CVPixelBufferGetWidth(mImageBufferRef);
+    return (int)width;
+}
+
+- (int)getHeight {
+    size_t height = CVPixelBufferGetHeight(mImageBufferRef);
+    return (int)height;
+}
+
+- (int)getFrameNo {
+    return mFrameNo;
+}
+
+- (unsigned int)getPts {
+    Float64 pts = CMTimeGetSeconds(CMSampleBufferGetOutputPresentationTimeStamp(mSampleBufferRef))*1000;
+    return (unsigned int)pts;
+}
+
+- (unsigned char*)getRawData {
+    CVPixelBufferLockBaseAddress(mImageBufferRef, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    return (unsigned char*)CVPixelBufferGetBaseAddress(mImageBufferRef);
+}
+
+
+
+@end

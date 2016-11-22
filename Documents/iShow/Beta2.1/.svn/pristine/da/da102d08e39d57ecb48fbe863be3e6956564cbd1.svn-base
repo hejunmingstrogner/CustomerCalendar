@@ -1,0 +1,172 @@
+//
+//  RegisterViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/21.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "RegisterViewController.h"
+#import "TFFileUploadManager.h"
+
+#import "SettingController.h"
+@interface RegisterViewController ()
+{
+    int seconds;
+}
+@property (nonatomic) NSTimer *secondsTimer;
+
+@end
+
+@implementation RegisterViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.title=@"新用户注册";
+  //  [self initThreeView];
+    
+}
+
+////用代码约束3个View的布局
+//-(void)initThreeView{
+//    NavigationBarView *navigationView=[NavigationBarView initNavigationBarView];
+//    navigationView.titleLable.text=@"新用户注册";
+//    navigationView.lineView.hidden=YES;
+//    navigationView.bottomView.hidden=YES;
+//    navigationView.frame=CGRectMake(0, 0, kScreenW, 128.0*kDistanceHeightRatio);
+//    [self.view addSubview:navigationView];
+//    
+//    
+//}
+
+//获取验证码
+- (IBAction)getCodeButton:(id)sender {
+    
+    //如果电话号码为空就不执行倒计时
+     if (self.phoneTextField.text.length==0) {
+         
+         AlertView *alert=[AlertView instanceAlertView];
+         alert.layer.cornerRadius=20;
+         alert.describeLabel.text=@"请输入电话号码";
+         AlertUtils *utils=[[AlertUtils alloc] init];
+         utils.contentView=alert;
+         [utils show];
+ 
+    }else{
+        if (![Utils checkTelNumber:self.phoneTextField.text]) {
+            AlertView *alert=[AlertView instanceAlertView];
+            alert.layer.cornerRadius=20;
+            alert.describeLabel.text=@"请输入正确的电话号码";
+            AlertUtils *utils=[[AlertUtils alloc] init];
+            utils.contentView=alert;
+            [utils show];
+        }else{
+        self.secondsTimer=[NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(timeFireMethod) userInfo:nil repeats:YES];
+        seconds=10;
+        self.secondsLabel.clipsToBounds=YES;
+        self.secondsLabel.hidden=NO;
+        self.getCodeButton.hidden=YES;
+        self.secondsLabel.text=[NSString stringWithFormat:@"重新获取%ds",seconds];
+
+        
+        NSDictionary *dict=@{@"user_mobile":self.phoneTextField.text};
+        [[NetworkingHelper shareINstance] GET:@"User/sendCode" dict:dict succeed:^(id data) {
+            if (data) {
+                NSNumber *num=[data objectForKey:@"state"];
+                if (num.integerValue==1) {
+                    self.userModel.code=[data objectForKey:@"values"];
+                    self.codeTextField.text=[data objectForKey:@"values"];
+                }
+            }
+        } failure:^(NSError *error) {
+            
+        }];
+        }
+    }
+}
+
+-(void)timeFireMethod{
+    seconds--;
+    self.secondsLabel.text=[NSString stringWithFormat:@"重新获取%ds",seconds];
+    if (seconds==0) {
+        [self.secondsTimer invalidate];
+        self.getCodeButton.hidden=NO;
+        self.secondsLabel.hidden=YES;
+        
+    }
+}
+//用户协议及隐私条款
+- (IBAction)UserPrivacyButtonClick:(id)sender {
+}
+
+//是否同意隐私条款
+- (IBAction)agreeButtonClick:(id)sender {
+    
+}
+
+//注册
+- (IBAction)registerButtonClick:(id)sender {
+    if (self.nickNameTextField.text.length==0) {
+        AlertView *alert=[AlertView instanceAlertView];
+        alert.layer.cornerRadius=20;
+        alert.describeLabel.text=@"请输入昵称";
+        AlertUtils *utils=[[AlertUtils alloc] init];
+        utils.contentView=alert;
+        [utils show];
+    }else{
+        if (self.passwordTextField.text.length==0) {
+            AlertView *alert=[AlertView instanceAlertView];
+            alert.layer.cornerRadius=20;
+            alert.describeLabel.text=@"请输入密码";
+            AlertUtils *utils=[[AlertUtils alloc] init];
+            utils.contentView=alert;
+            [utils show];
+        }else{
+            NSDictionary *dict=[NSDictionary dictionaryWithObjectsAndKeys:self.phoneTextField.text,@"user_mobile",self.passwordTextField.text,@"user_password",self.nickNameTextField.text,@"user_nick_name",self.userModel.code,@"code", nil];
+            
+            [[NetworkingHelper shareINstance] POST:@"User/reg" dict:dict succeedData:^(id data) {
+                if (data) {
+                    saveUserToken([data objectForKey:@"user_token"]);
+                    [self changeController];
+                }
+            } failure:^(NSError *error) {
+                
+            }];
+        }
+    }
+    
+}
+
+
+-(void)changeController{
+    if ([ConfigModel shareConfigModel].alertLogin) {
+        [self.navigationController popViewControllerAnimated:YES];
+    }else{
+        for (UIViewController *controller in self.navigationController.viewControllers) {
+            if ([controller isKindOfClass:[SettingController class]]) {
+                [self.navigationController popToViewController:controller animated:YES];
+            }
+        }
+    }
+    
+   
+}
+-(void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
+    [self.view endEditing:YES];
+}
+
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+-(UserModel *)userModel{
+    if (_userModel==nil) {
+        _userModel=[[UserModel alloc] init];
+    }
+    return _userModel;
+}
+
+
+@end

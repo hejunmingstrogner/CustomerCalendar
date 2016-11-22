@@ -1,0 +1,25 @@
+//
+//  BaseLayoutCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/20.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+
+@interface BaseLayoutCell : UICollectionViewCell
+@property (weak, nonatomic) IBOutlet UIImageView *bigImageView;
+@property (weak, nonatomic) IBOutlet UILabel *describeLabel;
+@property (weak, nonatomic) IBOutlet UIImageView *headImageView;
+@property (weak, nonatomic) IBOutlet UILabel *nameLabel;
+@property (weak, nonatomic) IBOutlet UILabel *zanCountLabel;
+@property (weak, nonatomic) IBOutlet UIButton *deleteButton;
+@property (weak, nonatomic) IBOutlet UIView *deleteView;
+
+@property (nonatomic, assign) CGFloat imageHeight;
+@property (nonatomic, assign) CGFloat textHeight;
+@property (nonatomic , strong) ShareVideosInfoModel *model;
+//-(void)initCellWithModel:(ShareVideosInfoModel *)model imageHeight:(CGFloat)imageHeight textHeight:(CGFloat)textHeight;
+@end

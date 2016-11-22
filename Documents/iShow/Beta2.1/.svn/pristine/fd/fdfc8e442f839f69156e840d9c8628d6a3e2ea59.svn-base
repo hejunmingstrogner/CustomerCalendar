@@ -1,0 +1,37 @@
+//
+//  SecondCellLayout.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/11/15.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import "YYKit.h"
+#import "ThemeListModel.h"
+
+#define  kTextFontSize 14
+#define kCountTextFont 14
+#define kPriceTextFont 12
+#define kT1TextContainerInset 4
+
+@interface SecondCellLayout : NSObject
+@property (nonatomic, assign) CGFloat height;
+@property (nonatomic, strong) ThemeListModel *tweet;
+
+@property (nonatomic, assign) CGFloat bigImageViewTop;
+@property (nonatomic, assign) CGFloat bigImageViewHeight;
+
+@property (nonatomic, assign) CGFloat textTop;
+@property (nonatomic, assign) CGFloat textHeight;
+
+@property (nonatomic, assign) CGFloat countLabelTop;
+@property (nonatomic, assign) CGFloat countLabelHeight;
+
+@property (nonatomic, assign) CGFloat priceLabelTop;
+@property (nonatomic, assign) CGFloat priceLabelHeight;
+
+@property (nonatomic, strong) YYTextLayout *textLayout;
+@property (nonatomic, strong) YYTextLayout *priceLableLayout;
+@property (nonatomic, strong) YYTextLayout *counteLableLayout;
+@end

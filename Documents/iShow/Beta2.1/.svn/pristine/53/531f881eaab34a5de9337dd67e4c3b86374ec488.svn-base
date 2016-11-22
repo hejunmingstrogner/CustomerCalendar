@@ -1,0 +1,13 @@
+//
+//  GetShareCatsRootModel.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/11/11.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "GetShareCatsRootModel.h"
+
+@implementation GetShareCatsRootModel
+
+@end

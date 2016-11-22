@@ -1,0 +1,35 @@
+//
+//  SecondCollectionCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/11/15.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "YYKit.h"
+#import "YYControl.h"
+#import "SecondCellLayout.h"
+@class SecondCollectionCell;
+
+@interface SecondStatusView : YYControl
+@property (nonatomic, strong) YYControl *bigImageView;
+@property (nonatomic, strong) YYLabel *textLabel;
+@property (nonatomic, strong) YYLabel *countLabel;
+@property (nonatomic, strong) YYLabel *priceLabel;
+@property (nonatomic, strong) UIButton *clickButton;
+@property (nonatomic, strong) SecondCollectionCell *cell;
+@end
+
+@protocol StatusCellDelegate <NSObject>
+-(void)secondCollectionCellClick:(SecondCollectionCell *)cell;
+
+@end
+
+
+@interface SecondCollectionCell : UICollectionViewCell
+@property (nonatomic, strong) SecondStatusView *statusView;
+@property (nonatomic, strong) SecondCellLayout *layout;
+@property (nonatomic, assign) NSInteger cellTag;
+@property (nonatomic, weak) id<StatusCellDelegate> delegate;
+@end

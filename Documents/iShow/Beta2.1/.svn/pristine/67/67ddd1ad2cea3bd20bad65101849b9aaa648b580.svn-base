@@ -1,0 +1,176 @@
+//
+//  BasicTabBarController.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/12.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "BasicTabBarController.h"
+#import "FirstViewController.h"
+#import "SecoundViewController.h"
+//#import "ThirdlyViewController.h"
+#import "FourthlyViewController.h"
+#import "BasicNavigationController.h"
+#import "MineViewController.h"
+#import "RunPageController.h"
+#define TABBAR_IMAGE_OFFSET 7
+#define TABBAR_BACKGROUNDCOLOR [UIColor colorWithRed:232 / 255.0 green:229 / 255.0 blue:214 / 255.0 alpha:1]
+
+@interface BasicTabBarController ()<RunPageControllerDelegate,AlertContentViewYesButtonClickDelegate>
+/*! 存放视图控制器的数组  */
+@property (nonatomic,strong) NSMutableArray                                     *viewControllersMutableArray;
+@property (nonatomic, strong) RunPageController *runPageController;
+@property (nonatomic, strong) AlertUtils *utils;
+@property (nonatomic, strong) AlertView *alert;
+
+@end
+
+@implementation BasicTabBarController
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        
+        _viewControllersMutableArray = [NSMutableArray arrayWithCapacity:4];
+        [self addTabBarSubsVc:[[FirstViewController alloc] init] title:@"首页" image:@"homepage"];
+        [self addTabBarSubsVc:[[SecoundViewController alloc] init] title:@"主题" image:@"topic"];
+        
+        //这里这个空白的VC是用来给中间那个按钮占位的
+        [self addTabBarSubsVc:[UIViewController new] title:@"" image:@""];
+        [self addTabBarSubsVc:[[FourthlyViewController alloc] init] title:@"发现" image:@"found"];
+       
+        
+        [self addTabBarSubsVc:[[MineViewController alloc] init] title:@"我的" image:@"mine"];
+       
+        self.viewControllers = _viewControllersMutableArray;
+        
+        //tabBar 的背景颜色
+        self.tabBar.barTintColor = TABBAR_BACKGROUNDCOLOR;
+    }
+    return self;
+}
+
+- (void)viewDidLoad {
+    self.runPageController=[[RunPageController alloc] initWithFrame:self.view.frame];
+    self.runPageController.delegate=self;
+    [self reachability];
+
+  //  [self.view addSubview:self.runPageController];
+
+
+
+}
+//正式使用时，这个地方要取消注释
+
+-(void)startButtonClick{
+    [UIView animateWithDuration:0.5 animations:^{
+        self.runPageController.alpha = 0;
+    } completion:^(BOOL finished) {
+        [self.runPageController removeFromSuperview];
+    }];
+}
+// 添加视图的方法
+- (void)addTabBarSubsVc:(UIViewController *)vc title:(NSString *)title image:(NSString *)imageName{
+    NSMutableDictionary *textAttrs = [NSMutableDictionary dictionary];
+    textAttrs[NSForegroundColorAttributeName] = kColor(205, 205, 205);
+    textAttrs[NSFontAttributeName] = [UIFont systemFontOfSize:10];
+    [vc.tabBarItem setTitleTextAttributes:textAttrs forState:UIControlStateNormal];
+    //设置视图控制器对应的标签标题
+    //把下面先注释diao
+    
+    vc.title = title;
+//    vc.view.backgroundColor = [UIColor redColor];
+    //设置标签默认图片
+//    vc.imageInsets = UIEdgeInsetsMake(5, 0, -5, 0);
+    vc.tabBarItem.image = [UIImage imageNamed:imageName];
+//    NSLog(@"%@",[[UIDevice currentDevice] model]);
+    if (kScreenW < 330) {
+        //vc.tabBarItem.imageInsets = UIEdgeInsetsMake(5, 1, 2, 1);
+        vc.tabBarItem.imageInsets = UIEdgeInsetsMake(5, 0, -5, 0);
+    } else {
+        vc.tabBarItem.imageInsets = UIEdgeInsetsMake(3, 0, -3, 0);
+    }
+//    vc.tabBarItem.imageInsets = UIEdgeInsetsMake(5, 1, 0, 1);
+//    UIEdgeInsetsMake(<#CGFloat top#>, <#CGFloat left#>, <#CGFloat bottom#>, <#CGFloat right#>)
+    // 设置tabbarItem的普通文字
+    
+   
+    
+    //设置tabBarItem的选中文字颜色
+    NSMutableDictionary *selectedTextAttrs = [NSMutableDictionary dictionary];
+    selectedTextAttrs[NSForegroundColorAttributeName] =kColor(254, 27, 98);
+    [vc.tabBarItem setTitleTextAttributes:selectedTextAttrs forState:UIControlStateSelected];
+   
+    NSString *selecteImageName = [NSString stringWithFormat:@"%@_selected",imageName];
+//    NSLog(@"%@",selecteImageName);
+    // 想要这个选择状态的图片按钮原样进行显示，必须要设置图片的绘制模式为：UIImageRenderingModeAlwaysOriginal
+    vc.tabBarItem.selectedImage = [[UIImage imageNamed:selecteImageName] imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
+    
+    // 添加导航控制器
+    BasicNavigationController *navVc = [[BasicNavigationController alloc] initWithRootViewController:vc];
+    navVc.navigationBar.height=40;
+    // 有一个数组添加设置好的导航控制器
+    [_viewControllersMutableArray addObject:navVc];
+    //    }
+    
+}
+
+
+//-(void)viewWillLayoutSubviews{
+//    CGRect frame=self.tabBar.frame;
+//    frame.size.height=96.0*kDistanceHeightRatio;
+//    frame.origin.y=self.view.frame.size.height-96.0*kDistanceHeightRatio;
+//    self.tabBar.frame=frame;
+//}
+
+-(void)reachability
+{
+    // 1.获得网络监控的管理者
+    AFNetworkReachabilityManager *mgr = [AFNetworkReachabilityManager sharedManager];
+    // 2.设置网络状态改变后的处理
+    [mgr setReachabilityStatusChangeBlock:^(AFNetworkReachabilityStatus status) {
+        // 当网络状态改变了, 就会调用这个block
+        switch (status) {
+            case AFNetworkReachabilityStatusUnknown: // 未知网络
+                NSLog(@"未知网络");
+                [ConfigModel shareConfigModel].netStatus=afNetworkReachabilityStatusUnknown;
+                break;
+            case AFNetworkReachabilityStatusNotReachable: // 没有网络(断网)
+                NSLog(@"没有网络(断网)");
+                [ConfigModel shareConfigModel].netStatus=afNetworkReachabilityStatusNotReachable;
+                break;
+            case AFNetworkReachabilityStatusReachableViaWWAN: // 手机自带网络
+                NSLog(@"手机自带网络");
+                [ConfigModel shareConfigModel].netStatus=AFNetworkReachabilityStatusReachableViaWWAN;             [self showAlertView];
+                break;
+            case AFNetworkReachabilityStatusReachableViaWiFi: // WIFI
+                NSLog(@"WIFI");
+                [ConfigModel shareConfigModel].netStatus=AFNetworkReachabilityStatusReachableViaWiFi;
+                break;
+        }
+    }];
+    // 3.开始监控
+    [mgr startMonitoring];
+}
+
+-(void)alertContentYesButtonClick {
+    
+
+    
+    
+}
+
+-(void)showAlertView{
+    AlertUtils *utils=[[AlertUtils alloc] init];
+    AlertView *view=[AlertView instanceAlertView];
+    view.layer.cornerRadius=20;
+    view.describeLabel.text=@"当前使用的是数据流量,是否继续使用？";
+    utils.contentView=view;
+    [utils show];
+}
+
+
+
+
+@end

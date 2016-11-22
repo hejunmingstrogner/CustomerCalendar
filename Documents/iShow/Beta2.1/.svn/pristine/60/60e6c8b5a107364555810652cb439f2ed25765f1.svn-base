@@ -1,0 +1,18 @@
+//
+//  EffectsViewController.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/10/27.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "RecordEngine.h"
+
+@interface EffectsViewController : UIViewController
+@property (assign, nonatomic) BOOL isDiss;
+@property (strong, nonatomic) NSString *videoURL;
+@property (strong, nonatomic) RecordEngine *saveRecordEngine;
+- (instancetype)initWithVideoPath:(NSString*)path;
+@property (strong, nonatomic) NSString *path;
+@end

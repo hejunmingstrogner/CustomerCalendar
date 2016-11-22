@@ -1,0 +1,13 @@
+//
+//  BannerRootModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/10/6.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <JSONModel/JSONModel.h>
+#import "BannerModel.h"
+@interface BannerRootModel : JSONModel
+@property (nonatomic,strong ) NSArray <Optional,BannerModel> *list;
+@end

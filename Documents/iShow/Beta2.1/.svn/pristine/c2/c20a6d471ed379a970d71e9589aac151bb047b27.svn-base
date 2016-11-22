@@ -1,0 +1,91 @@
+//
+//  YXVideoEffectModel.h
+//  MPTVideoKit
+//
+//  Created by Simon on 15/4/15.
+//  Copyright (c) 2015年 Xuan Yi Xia CO.LTD. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface YXVideoEffectModel : NSObject
+
+//效果名
+@property (nonatomic, strong) NSString *effectName;
+@property (nonatomic, strong) NSString *effectDisplayName;
+//效果Icon的路径
+@property (nonatomic, retain) NSString *effectIconPath;
+//是否需要右上角logo，默认需要
+@property (nonatomic, assign) BOOL      needVideoLogo;
+
+//线上
+//效果是否来自网络下载
+@property (nonatomic, assign) BOOL isFormNet;
+//效果是否已经下载
+@property (nonatomic, assign) BOOL hasDownload;
+//下载路径
+@property (nonatomic, retain) NSString *effectDownloadPath;
+//效果Demo视频网络路径
+@property (nonatomic, retain) NSString *effectDemoPath;
+//效果Cover网络路径
+@property (nonatomic, retain) NSString *effectCoverPath;
+//效果描述
+@property (nonatomic, retain) NSString *effectDesc;
+
+//文件夹名
+@property (nonatomic, retain) NSString *effectFolderName;
+//唯一字符ID
+@property (nonatomic, retain) NSString *effectStrID;
+//话题
+@property (nonatomic, retain) NSString *topic;
+//照片相关配置
+@property (nonatomic, readonly, retain) NSDictionary*photoTimeConfig;
+
+/**
+ *  YXVideoEffectModel的初始化方法
+ *
+ *  @param effectName 视频效果的标识，也是放置相关效果文件的文件夹名称
+ *  @param path       文件夹所在的目录路径
+ *
+ *  @return YXVideoEffectModel
+ */
+- (id)initWithName:(NSString *)effectName andPath:(NSString *)path;
+
+/**
+ *  刷新model
+ *
+ *  @param effectName 视频效果的标识，也是放置相关效果文件的文件夹名称
+ *  @param path       文件夹所在的目录路径
+ */
+- (void)refreshWithName:(NSString *)effectName andPath:(NSString *)path;
+
+/**
+ *  获取视频效果的音乐路径
+ *
+ *  @return 音乐路径
+ */
+- (NSString*)getEffectMusicPath;
+- (NSString*)getExtraSoundPath;
+- (NSString*)getBGEffectPath;
+
+/**
+ *  获取视频效果的配置数组
+ *
+ *  @return 配置数组
+ */
+- (NSArray*)getEffectArray;
+
+/**
+ *  获取视频效果文件夹路径
+ *
+ *  @return 文件夹路径
+ */
+- (NSString*)getEffectDirPath;
+
+/**
+ *  无效果
+ *
+ *  @return 无效果的对象
+ */
++ (YXVideoEffectModel*)buildNoneModel;
+@end

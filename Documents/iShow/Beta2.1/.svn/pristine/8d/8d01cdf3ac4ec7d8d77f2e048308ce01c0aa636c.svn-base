@@ -1,0 +1,20 @@
+//
+//  BannerModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/10/6.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <JSONModel/JSONModel.h>
+
+@protocol BannerModel <NSObject>
+@end
+
+@interface BannerModel : JSONModel
+@property (nonatomic,strong ) NSString <Optional> *banner_title;
+@property (nonatomic,strong ) NSString <Optional> *banner_image;
+@property (nonatomic,strong ) NSString <Optional> *banner_type;
+@property (nonatomic,strong ) NSString <Optional> *banner_link;
+
+@end

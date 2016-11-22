@@ -1,0 +1,28 @@
+//
+//  ListModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/22.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface ListModel : NSObject
+@property (nonatomic,strong ) NSString *theme_name;
+@property (nonatomic,strong ) NSString *theme_image;
+@property (nonatomic,strong ) NSString *theme_brief;
+@property (nonatomic,strong ) NSString *theme_download_url;
+@property (nonatomic,strong ) NSString *theme_video_url;
+@property (nonatomic,strong ) NSString *user_nick_name;
+@property (nonatomic,strong ) NSString *user_image;
+
+@property (nonatomic,strong ) NSString *theme_id;
+@property (nonatomic,strong ) NSString *theme_create_count;
+@property (nonatomic,assign ) NSInteger user_id;
+@property (nonatomic,strong) NSString *theme_uptime;
+
++ (instancetype)ThemeListModelWithDictionary:(NSDictionary *)dict;
+
+
+@end

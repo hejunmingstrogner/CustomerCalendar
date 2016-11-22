@@ -1,0 +1,42 @@
+//
+//  VideoDetailCell.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "VideoDetailCell.h"
+#import "UserDetailController.h"
+#import "CareFansInfoController.h"
+@implementation VideoDetailCell
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    self.headImageView.layer.cornerRadius=50;
+    self.headImageView.layer.masksToBounds=YES;
+   // self.backgroundColor = [UIColor groupTableViewBackgroundColor];
+    
+}
+
+//在这里进入个人主页，根据model提供的ID
+- (IBAction)PersonalButtonClick:(id)sender {
+    UserDetailController *controller=[[UserDetailController alloc] init];
+    [[self viewController].navigationController pushViewController:controller animated:YES];
+}
+- (IBAction)commentButtonClick:(id)sender {
+    CareFansInfoController *controller=[[CareFansInfoController alloc] init];
+    controller.barTextType=3;//指定评论界面
+    [[self viewController].navigationController pushViewController:controller animated:YES];
+}
+
+- (UIViewController *)viewController {
+    for (UIView* next = [self superview]; next; next = next.superview) {
+        UIResponder *nextResponder = [next nextResponder];
+        if ([nextResponder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController *)nextResponder;
+        }
+    }
+    return nil;
+}
+@end

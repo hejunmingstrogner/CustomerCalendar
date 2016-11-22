@@ -1,0 +1,16 @@
+//
+//  SecoundCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/23.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "ThemeListModel.h"
+@interface SecoundCell : UICollectionViewCell
+
+@property (nonatomic ,strong) ThemeListModel *model;
+
+
+@end

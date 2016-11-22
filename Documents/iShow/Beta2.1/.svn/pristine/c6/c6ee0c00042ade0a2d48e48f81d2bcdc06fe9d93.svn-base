@@ -1,0 +1,31 @@
+//
+//  UserHeaderView.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/19.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface UserHeaderView : UICollectionReusableView<AlertContentViewYesButtonClickDelegate>
+@property (weak, nonatomic) IBOutlet UIImageView *headerImageView;
+@property (weak, nonatomic) IBOutlet UILabel *nameLabel;
+
+@property (weak, nonatomic) IBOutlet UILabel *describeLabel;
+@property (weak, nonatomic) IBOutlet UIButton *moreButton;
+@property (weak, nonatomic) IBOutlet UILabel *videoNumLabel;
+@property (weak, nonatomic) IBOutlet UILabel *fansNumLabel;
+@property (weak, nonatomic) IBOutlet UILabel *careNumLabel;
+@property (weak, nonatomic) IBOutlet UIButton *fansButton;
+@property (weak, nonatomic) IBOutlet UIButton *careButton;
+@property (weak, nonatomic) IBOutlet UIView *oneView;
+@property (weak, nonatomic) IBOutlet UIView *twoView;
+@property (weak, nonatomic) IBOutlet UILabel *videoLabel;
+@property (weak, nonatomic) IBOutlet UILabel *fansLabel;
+@property (weak, nonatomic) IBOutlet UILabel *careLabel;
+@property (nonatomic, strong) NSNumber *user_id;
+@property (weak, nonatomic) IBOutlet UIButton *concernButton;
+@property (nonatomic, strong) AlertView *alert;
+@property (nonatomic, strong) AlertUtils *utils;
+@end

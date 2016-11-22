@@ -1,0 +1,18 @@
+//
+//  FirstBaseCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/12.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "ShareListModel.h"
+
+@interface FirstBaseCell : UICollectionViewCell
+
+@property (nonatomic , strong) ShareListModel *model;
+//-(void)showCellWithModel:(ShareListModel *)frameModel indexPath:(NSIndexPath *)indexPath;
+
+
+@end

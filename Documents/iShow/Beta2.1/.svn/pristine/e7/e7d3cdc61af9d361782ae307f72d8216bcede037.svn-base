@@ -1,0 +1,14 @@
+//
+//  SingleButtonAlertView.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/11/9.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface SingleButtonAlertView : UIView
+@property (weak, nonatomic) IBOutlet UILabel *titleLabel;
++(instancetype)instanceAlertView;
+@end

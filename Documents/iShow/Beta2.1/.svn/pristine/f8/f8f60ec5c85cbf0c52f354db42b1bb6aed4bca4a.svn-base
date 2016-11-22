@@ -1,0 +1,255 @@
+/*
+ * Copyright 2014 by MotionPortrait, Inc.
+ *
+ * All rights reserved.
+ *
+ */
+
+#ifndef MPAANALYZER_HEADER
+#define MPAANALYZER_HEADER
+
+#include "mptypes.h"
+
+namespace motionportrait {
+
+class MpaAnalyzerImpl;
+class MpaAnalysisResult;
+class MpaRecogResult;
+class MpaImage;
+
+/**
+ * \class MpaAnalyzer
+ */
+class MpaAnalyzer {
+
+  public:
+
+    MpaAnalyzer();
+    virtual ~MpaAnalyzer();
+
+    /**
+     * Initialize
+     *
+     * @param pathRes : path to resource data
+     */
+    int Init(const char *pathRes);
+
+    /**
+     * Sets input image to analyze,
+     *
+     * Copy of the image data will be created and you can safely delete \a img after calling setImage().
+     * 
+     * @param img    : input image data
+     */
+    int SetImage(const MpaImage &img);
+
+    /**
+     * Recognize - same function as MpaRecognizer::Recognize
+     *
+     * @param result : output recognition result
+     */
+    int Recognize(MpaRecogResult &result);
+
+    /**
+     * Analyze
+     *
+     * @param result : output analysis result
+     */
+    int Analyze(MpaAnalysisResult &result);
+
+    /** parameter for EnableDetection() */
+    struct MpaAnalysisSwitch {
+        bool enableBasicParts;
+        bool enableBasicFace;
+        bool enableEye;
+        bool enableEyeBall;
+        bool enableEyebrow;
+        bool enableNose;
+        bool enableMouth;
+        bool enableContour;
+        
+        // all flags are on at first
+        MpaAnalysisSwitch() :
+            enableBasicParts(true),
+            enableBasicFace(true),
+            enableEye(true),
+            enableEyeBall(true),
+            enableEyebrow(true),
+            enableNose(true),
+            enableMouth(true),
+            enableContour(true)
+        {}
+    };
+
+    /**
+     * Enable/Disable detection
+     *
+     * @param on : enable/disable switch for each category
+     */
+    int EnableDetection(const MpaAnalysisSwitch &on);
+
+protected:
+    MpaAnalyzerImpl* impl_;
+};
+
+
+enum MPA_IMAGE_FORMAT {
+    MPA_IMAGE_GRAYSCALE = 1,
+    MPA_IMAGE_RGBA = 4,
+    MPA_IMAGE_RGB = 3,
+    MPA_IMAGE_INVALID_FORMAT = -1
+};
+    
+/**
+ * \class MpaImage
+ */
+class MpaImage {
+  public:
+    MpaImage()
+    : width(0), height(0), format(MPA_IMAGE_INVALID_FORMAT), bytesPerComponent(0), bytesPerRow(0), data(NULL) {}
+    MpaImage(int w, int h, MPA_IMAGE_FORMAT f, int bpc, int bpr, void* p)
+    : width(w), height(h), format(f), bytesPerComponent(bpc), bytesPerRow(bpr), data(p) {}
+    int width;
+    int height;
+    MPA_IMAGE_FORMAT format;
+    int bytesPerComponent;
+    int bytesPerRow;
+    void* data;
+    //! Copies attributes except for MpaImage::data
+    void SafeCopy(const MpaImage& src) {
+        width = src.width;
+        height = src.height;
+        format = src.format;
+        bytesPerComponent = src.bytesPerComponent;
+        bytesPerRow = src.bytesPerRow;
+    }
+private:
+    MpaImage(const MpaImage& src) {
+        // DO NOT USE COPY CONSTRUCTOR
+    }
+    MpaImage& operator=(const MpaImage& src) {
+        // DO NOT USE COPY OPERATOR
+        return *this;
+    }
+};
+
+/**
+ * \class MpaRecogResult
+ */
+class MpaRecogResult {
+
+  public:
+
+    enum eFeaturePoint {
+        FP_BASICPARTS_EYE_LEFT,
+        FP_BASICPARTS_EYE_RIGHT,
+        FP_BASICPARTS_EYEBROW_LEFT,
+        FP_BASICPARTS_EYEBROW_RIGHT,
+        FP_BASICPARTS_NOSE_BOTTOM,
+        FP_BASICPARTS_MOUTH,
+        FP_BASICFACE_UP,
+        FP_BASICFACE_BOTTOM,
+        FP_BASICFACE_LEFT,
+        FP_BASICFACE_RIGHT,
+        FP_EYE_LEFT_UP,
+        FP_EYE_LEFT_BOTTOM,
+        FP_EYE_LEFT_INSIDE,
+        FP_EYE_LEFT_OUTSIDE,
+        FP_EYE_RIGHT_UP,
+        FP_EYE_RIGHT_BOTTOM,
+        FP_EYE_RIGHT_INSIDE,
+        FP_EYE_RIGHT_OUTSIDE,
+        FP_EYEBALL_LEFT_INSIDE,
+        FP_EYEBALL_LEFT_OUTSIDE,
+        FP_EYEBALL_RIGHT_INSIDE,
+        FP_EYEBALL_RIGHT_OUTSIDE,
+        FP_EYEBROW_LEFT_UP_INSIDE,
+        FP_EYEBROW_LEFT_UP_CENTER,
+        FP_EYEBROW_LEFT_UP_OUTSIDE,
+        FP_EYEBROW_LEFT_LOW_INSIDE,
+        FP_EYEBROW_LEFT_LOW_CENTER,
+        FP_EYEBROW_LEFT_LOW_OUTSIDE,
+        FP_EYEBROW_RIGHT_UP_INSIDE,
+        FP_EYEBROW_RIGHT_UP_CENTER,
+        FP_EYEBROW_RIGHT_UP_OUTSIDE,
+        FP_EYEBROW_RIGHT_LOW_INSIDE,
+        FP_EYEBROW_RIGHT_LOW_CENTER,
+        FP_EYEBROW_RIGHT_LOW_OUTSIDE,
+        FP_NOSE_LEFT,
+        FP_NOSE_RIGHT,
+        FP_NOSE_NOSTRIL_LEFT,
+        FP_NOSE_NOSTRIL_RIGHT,
+        FP_NOSE_CAVE_LEFT,
+        FP_NOSE_CAVE_RIGHT,
+        FP_MOUTH_LEFT,
+        FP_MOUTH_RIGHT,
+        FP_MOUTH_UPPER_LIP_INSIDE,
+        FP_MOUTH_UPPER_LIP_OUTSIDE,
+        FP_MOUTH_LOWER_LIP_INSIDE,
+        FP_MOUTH_LOWER_LIP_OUTSIDE,
+        FP_CONTOUR_EYE_LEFT,
+        FP_CONTOUR_EYE_RIGHT,
+        FP_CONTOUR_CHEEK_LEFT,
+        FP_CONTOUR_CHEEK_RIGHT,
+        FP_CONTOUR_MOUTH_LEFT,
+        FP_CONTOUR_MOUTH_RIGHT,
+        FP_CONTOUR_UPPER_CHIN_LEFT,
+        FP_CONTOUR_UPPER_CHIN_RIGHT,
+        FP_CONTOUR_LOWER_CHIN_LEFT,
+        FP_CONTOUR_LOWER_CHIN_RIGHT,
+        FP_NUM,
+    };
+
+    struct tFeaturePoint {
+        mpVector2 pnt;
+        bool available;
+    };
+
+    tFeaturePoint fp[FP_NUM];
+
+    MpaRecogResult();
+    ~MpaRecogResult();
+};
+
+
+/**
+ * \class MpAnalysisResult
+ */
+class MpaAnalysisResult {
+
+  public:
+    typedef enum {
+        SCORE_ATTR_FEMALE,
+        SCORE_ATTR_GLASSES,
+        SCORE_ATTR_AGE,
+        SCORE_ATTR_BEARD,
+        SCORE_ATTR_MUSTACHE,
+        SCORE_ATTR_HAIR_LONG,
+        SCORE_ATTR_HAIR_FOREHEAD,
+        SCORE_ATTR_SMILE,
+        SCORE_ATTR_HAPPY,
+        SCORE_ATTR_SAD,
+        SCORE_ATTR_SURPRISED,
+        SCORE_ATTR_ANGRY,
+        SCORE_ATTR_FRIGHTENED,
+        SCORE_ATTR_DISGUSTED,
+        SCORE_ATTR_NEUTRAL,
+        SCORE_ATTR_NUM,
+    } eScoreAttributeId;
+
+    struct tScore {
+        tScore() {}
+        tScore(bool avail, float s) : score(s), available(avail) {}
+        float score;
+        bool  available;
+    };
+
+    tScore scoreAttribute[SCORE_ATTR_NUM];
+
+    MpaAnalysisResult();
+    ~MpaAnalysisResult();
+};
+
+} // namespace motionportrait
+
+#endif /* MPAANALYZER_HEADER */

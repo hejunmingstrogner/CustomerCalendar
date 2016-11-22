@@ -1,0 +1,17 @@
+//
+//  FeedBackViewController.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/18.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface FeedBackViewController : UIViewController
+@property (weak, nonatomic) IBOutlet UITextField *phoneTextField;
+
+@property (weak, nonatomic) IBOutlet UITextView *suggesstionTextView;
+@property (weak, nonatomic) IBOutlet UIButton *commitButton;
+@property (weak, nonatomic) IBOutlet UIView *superView;
+@end

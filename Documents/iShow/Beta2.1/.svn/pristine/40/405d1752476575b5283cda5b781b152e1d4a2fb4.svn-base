@@ -1,0 +1,13 @@
+//
+//  CategoryModel.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/19.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "CategoryModel.h"
+
+@implementation CategoryModel
+
+@end

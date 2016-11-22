@@ -1,0 +1,21 @@
+//
+//  ShareUpModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/27.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <JSONModel/JSONModel.h>
+
+@protocol ShareUpModel <NSObject>
+@end
+
+@interface ShareUpModel : JSONModel
+
+@property (nonatomic,strong ) NSString <Optional> *user_image;
+@property (nonatomic,strong ) NSString <Optional> *user_nick_name;
+@property (nonatomic,strong ) NSString <Optional> *user_id;
+
+
+@end

@@ -1,0 +1,78 @@
+//
+//  DetailViewController.m
+//  VideoProject
+//
+//  Created by once_CH on 16/9/8.
+//  Copyright © 2016年 CX. All rights reserved.
+//视频collectionView播放界面
+
+#import "DetailViewController.h"
+//#import "HotDetailCell.h"
+#import "CXHotDetailLayout.h"
+#import "VideoDetailCell.h"
+
+static NSString * const CXDetail = @"CXDetailCell";
+
+@interface DetailViewController ()<UICollectionViewDataSource,UICollectionViewDelegate>
+@property (nonatomic , strong) UICollectionView * detailCollectionView;
+@end
+
+
+@implementation DetailViewController
+-(instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        self.hidesBottomBarWhenPushed = YES;
+    }
+    return self;
+}
+- (void)viewDidLoad {
+    [super viewDidLoad];
+//    self.view.backgroundColor = [UIColor orangeColor];
+    
+    self.navigationController.navigationBarHidden = NO;
+//    self.navigationController.navigationBarHidden = NO;
+    [self.view addSubview:self.detailCollectionView];
+}
+
+#pragma mark -- UICollectionViewDelegate
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+//    [self.navigationController pushViewController:[[CommentController alloc]init] animated:YES];
+}
+
+
+#pragma  mark -- UICollectionViewSource
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+    return 20;
+}
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+    VideoDetailCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:CXDetail forIndexPath:indexPath];
+    return cell;
+}
+#pragma mark -- Getter
+- (UICollectionView *)detailCollectionView {
+    if (!_detailCollectionView) {
+        CXHotDetailLayout *flowLayout = [CXHotDetailLayout createCXLayout];
+        flowLayout.scrollDirection = UICollectionViewScrollDirectionVertical;
+        //设置最小行距
+        flowLayout.minimumLineSpacing = 0;
+        //设置最小间距
+        flowLayout.minimumInteritemSpacing = 0;
+        //设置格子大小
+       // flowLayout.itemSize = CGSizeMake(self.view.frame.size.width -20, self.view.frame.size.height*0.75);
+        flowLayout.itemSize = CGSizeMake(self.view.frame.size.width -20, 445/568.0*kScreenH);
+        //设置组边界
+        flowLayout.sectionInset = UIEdgeInsetsMake(0, 10, 0, 10);
+        _detailCollectionView = [[UICollectionView alloc]initWithFrame:CGRectMake(0, 0, self.view.width, self.view.height) collectionViewLayout:flowLayout];
+        _detailCollectionView.dataSource = self;
+        _detailCollectionView.delegate = self;
+        _detailCollectionView.backgroundColor = [UIColor whiteColor];
+        UINib *nib = [UINib nibWithNibName:@"VideoDetailCell" bundle: [NSBundle mainBundle]];
+        [_detailCollectionView registerNib:nib forCellWithReuseIdentifier:CXDetail];
+//        [_detailCollectionView registerClass:[HotDetailCell class] forCellWithReuseIdentifier:CXDetail];
+    }
+    return _detailCollectionView;
+}
+
+
+@end

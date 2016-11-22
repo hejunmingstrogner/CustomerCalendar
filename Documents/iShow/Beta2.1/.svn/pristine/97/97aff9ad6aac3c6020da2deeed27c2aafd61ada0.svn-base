@@ -1,0 +1,25 @@
+//
+//  CareFansInfoCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/18.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "AlertView.h"
+
+@interface CareFansInfoCell : UITableViewCell<AlertContentViewYesButtonClickDelegate>
+
+@property (nonatomic, strong) AlertUtils *utils;
+@property (nonatomic, strong) AlertView *alert;
+@property (weak, nonatomic) IBOutlet UIImageView *headerImageView;
+@property (weak, nonatomic) IBOutlet UILabel *nameLabel;
+@property (weak, nonatomic) IBOutlet UILabel *describeLabel;
+@property (weak, nonatomic) IBOutlet UIButton *careButton;
+@property (weak, nonatomic) IBOutlet UIView *lineView;
+
+
+@property (nonatomic, strong) UserModel *userModel;
+-(void)initViewWithUserModel:(UserModel *)model;
+@end

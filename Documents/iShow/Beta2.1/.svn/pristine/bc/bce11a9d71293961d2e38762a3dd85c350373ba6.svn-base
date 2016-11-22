@@ -1,0 +1,17 @@
+//
+//  MyButton.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/22.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+typedef void (^ButtonBlock)(UIButton *);
+@interface MyButton : UIButton
+
+@property(nonatomic,copy)ButtonBlock block;
+- (void)addTapBlock:(ButtonBlock)block;
+
+- (UIButton *)initWithButtonWith:(NSString *)title point:(CGPoint)point font:(NSInteger)font;
+@end

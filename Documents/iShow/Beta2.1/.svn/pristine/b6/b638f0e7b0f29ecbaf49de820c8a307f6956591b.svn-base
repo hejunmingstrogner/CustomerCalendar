@@ -1,0 +1,47 @@
+//
+//  XYVideoPlayerView.h
+//  SmartClassRoom
+//
+//  Created by Nowind on 16/4/8.
+//  Copyright © 2016年 newcloudnet. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <AVFoundation/AVFoundation.h>
+#import <UIKit/UIKit.h>
+#import "LZHProgressSlider.h"
+#import <IJKMediaFramework/IJKMediaFramework.h>
+@class XYVideoPlayerView;
+@class XYVideoModel;
+
+@protocol XYVideoPlayerViewDelegate <NSObject>
+//全屏
+- (void)fullScreenWithPlayerView:(XYVideoPlayerView *)videoPlayerView;
+//收回全屏
+-(void)upFullScreenWIthPlayerView:(XYVideoPlayerView *)videoPlayerView;
+//返回
+- (void)backToBeforeVC;
+
+@end
+
+@interface XYVideoPlayerView : UIView
+
+//视频模型 包括视频的链接和标题
+
+@property(nonatomic, strong) XYVideoModel *videoModel;
+@property (strong, nonatomic) UIButton                 *playOrPauseBtn;
+@property (assign, nonatomic) BOOL isRotate; //是否全屏
+@property(nonatomic, strong) id<IJKMediaPlayback>    player;
+@property (nonatomic, weak) id<XYVideoPlayerViewDelegate>delegate;
+@property (strong, nonatomic) LZHProgressSlider      *slider;
+@property (nonatomic, strong) CADisplayLink            *link;
+@property (weak, nonatomic) IBOutlet UIView          *toolView;
+@property (nonatomic, assign) BOOL toolViewHidden;
+//菊花
+@property (nonatomic, strong)  UIActivityIndicatorView *activity;
+//初始化方法
++ (instancetype)videoPlayerView;
+//内存回收
+- (void)deallocPlayer;
+
+@end

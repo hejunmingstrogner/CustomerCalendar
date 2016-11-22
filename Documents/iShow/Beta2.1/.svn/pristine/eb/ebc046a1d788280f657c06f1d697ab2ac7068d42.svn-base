@@ -1,0 +1,19 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+@protocol MpVideoConverterDelegate <NSObject>
+/**
+ * Notify video conversion has finished.
+ *
+ */
+- (void)ConvertVideoFinished:(int)status;
+@end
+
+@interface MpVideoConverter : NSObject
+
+@property (nonatomic, assign) id<MpVideoConverterDelegate> delegate;
+
+- (void)Convert :(NSString*)inFile outFile:(NSString*)outFile width:(int)width height:(int)height bitrate:(int)bitrate;
+
+@end

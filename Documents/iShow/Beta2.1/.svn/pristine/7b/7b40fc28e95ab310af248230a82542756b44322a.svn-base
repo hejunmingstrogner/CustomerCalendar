@@ -1,0 +1,47 @@
+//
+//  BaseCellLayout.h
+//  CYCell
+//
+//  Created by storm on 16/11/14.
+//  Copyright © 2016年 strom. All rights reserved.
+//
+
+#import "YYKit.h"
+#import "ShareVideosInfoModel.h"
+
+
+#define kT1UserNameSubFontSize 12
+#define kT1TextFontSize 14
+#define kT1UserNameSubColor UIColorHex(8899A6)
+#define kT1ContentWidth 30
+#define kT1TextContainerInset 4
+#define kT1TextColor UIColorHex(292F33)
+
+@interface BaseCellLayout : NSObject
+//cell的height
+@property (nonatomic, assign) CGFloat height;
+@property (nonatomic, strong) ShareVideosInfoModel *tweet;
+
+
+@property (nonatomic, assign) CGFloat bigImageViewTop;
+@property (nonatomic, assign) CGFloat bigImageViewHeight;
+
+@property (nonatomic, assign) CGFloat textTop;
+@property (nonatomic, assign) CGFloat textHeight;
+
+//头像
+@property (nonatomic, assign) CGFloat headerTop;
+@property (nonatomic, assign) CGFloat bottomViewHeight;
+
+
+
+@property (nonatomic, strong) YYTextLayout *textLayout;
+@property (nonatomic, strong) YYTextLayout *nameLableLayout;
+@property (nonatomic, strong) YYTextLayout *favoriteLableLayout;
+
+
+
+-(YYTextLayout *)nameLabelTextLayoutForModel:(ShareVideosInfoModel *)tweet;
+-(YYTextLayout *)favoriteLabelTextLayoutForModel:(ShareVideosInfoModel *)tweet;
+
+@end

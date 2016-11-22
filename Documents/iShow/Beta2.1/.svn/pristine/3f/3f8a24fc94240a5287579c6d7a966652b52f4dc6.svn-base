@@ -1,0 +1,267 @@
+//
+//  CareFansInfoController.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/18.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "CareFansInfoController.h"
+#import "CareFansInfoCell.h"
+#import "DetailViewController.h"
+#import "UserDetailController.h"
+@interface CareFansInfoController ()<UITableViewDelegate,UITableViewDataSource>
+@property (nonatomic, strong) UITableView *tableView;
+@property (nonatomic, strong) NSMutableArray *dataArray;
+@property (nonatomic,copy) NSString *nullText;
+@property (nonatomic, assign) NSInteger totalPage;
+@property (nonatomic, assign) int pageCount;
+@property (nonatomic, strong) UILabel *label;
+@end
+
+@implementation CareFansInfoController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    _pageCount=1;
+    [self initData];//获取数据
+    [self initBarText];
+    [self initView];//初始化view
+}
+
+-(void)initData{
+    switch (self.barTextType) {
+        case 0://关注
+        {
+            NSDictionary *dict=@{@"page":@(_pageCount)};
+           // NSDictionary *dict=@{@"user_id":[ConfigModel shareConfigModel].user_id,@"page":@(_pageCount)};
+            [[NetworkingHelper shareINstance] GET:@"User/getUserFollow" dict:dict succeedData:^(id data) {
+                if (data) {
+                   
+                    UserListModel *listModel=[[UserListModel alloc] initWithDictionary:data error:nil];
+                    [self.dataArray addObjectsFromArray:listModel.list];
+                    self.totalPage=[data[@"total"] intValue];
+                    if (self.dataArray.count==0) {
+                        self.nullText=@"关注的人会显示在这里哦 ~";
+                        
+                    }
+                    if (_pageCount>=self.totalPage) {
+                        [self.tableView.mj_footer endRefreshingWithNoMoreData];
+                    }else{
+                        [self.tableView.mj_footer endRefreshing];
+                    }
+                    [self.tableView reloadData];
+                    [self.tableView.mj_header endRefreshing];
+                    
+                }
+            } failure:^(NSError *error) {
+                
+            }];
+        }
+            break;
+        case 1://粉丝
+        {
+            
+            NSDictionary *dict=@{@"page":@(_pageCount)};
+           // NSDictionary *dict=@{@"user_id":[ConfigModel shareConfigModel].user_id};
+            [[NetworkingHelper shareINstance] GET:@"User/getUserFans" dict:dict succeedData:^(id data) {
+                if (data) {
+                    UserListModel *listModel=[[UserListModel alloc] initWithDictionary:data error:nil];
+                    [self.dataArray addObjectsFromArray:listModel.list];
+                    self.totalPage=[data[@"total"] intValue];
+                    
+                    if (self.dataArray.count==0) {
+                        self.nullText=@"小伙伴 ~ 多发布些视频,吸引你的粉丝吧 ~";
+                    }
+                    if (_pageCount>=self.totalPage) {
+                        [self.tableView.mj_footer endRefreshingWithNoMoreData];
+                    }else{
+                        [self.tableView.mj_footer endRefreshing];
+                    }
+                    [self.tableView reloadData];
+                    [self.tableView.mj_header endRefreshing];
+                   
+                }
+            } failure:^(NSError *error) {
+                
+            }];
+        }
+            break;
+            
+        case 2://消息
+        {
+            NSDictionary *dict=@{@"page":@(_pageCount)};
+            [[NetworkingHelper shareINstance] GET:@"Comment/atMe" dict:dict succeedData:^(id data) {
+                if (data) {
+                    UserListModel *listModel=[[UserListModel alloc] initWithDictionary:data error:nil];
+                    [self.dataArray addObjectsFromArray:listModel.list];
+                    self.totalPage=[data[@"total"] intValue];
+                    
+                    if (self.dataArray.count==0) {
+                        self.label.text=@"已经没有新消息了。";
+                    }
+                    if (_pageCount>=self.totalPage) {
+                        [self.tableView.mj_footer endRefreshingWithNoMoreData];
+                    }else{
+                        [self.tableView.mj_footer endRefreshing];
+                    }
+                    [self.tableView reloadData];
+                    [self.tableView.mj_header endRefreshing];
+                    
+                }
+            } failure:^(NSError *error) {
+                
+            }];
+
+            
+        }
+            break;
+            
+        case 3://评论
+        {
+            NSDictionary *dict=@{@"page":@(_pageCount)};
+            [[NetworkingHelper shareINstance] GET:@"Comment/commentMy" dict:dict succeedData:^(id data) {
+                if (data) {
+                    UserListModel *listModel=[[UserListModel alloc] initWithDictionary:data error:nil];
+                    [self.dataArray addObjectsFromArray:listModel.list];
+                    self.totalPage=[data[@"total"] intValue];
+                    
+                    if (self.dataArray.count==0) {
+                        [self.label setText:@"已经没有新的消息了。"];
+                        NSArray *subVIews=self.view.subviews;
+                        
+                    }
+                    if (_pageCount>=self.totalPage) {
+                        [self.tableView.mj_footer endRefreshingWithNoMoreData];
+                    }else{
+                        [self.tableView.mj_footer endRefreshing];
+                    }
+                    [self.tableView reloadData];
+                    [self.tableView.mj_header endRefreshing];
+                    
+                }
+            } failure:^(NSError *error) {
+                
+            }];
+
+        }
+            break;
+            
+        default:
+            break;
+    }
+    
+    
+    
+}
+
+-(void)initBarText{
+    switch (self.barTextType) {
+        case 0:
+        {
+            self.title=@"关注";
+            
+        }
+            break;
+        case 1:
+        {
+            self.title=@"粉丝";
+            
+        }
+            break;
+        case 2:
+        {
+             self.title=@"@我的";
+            
+        }
+           
+            break;
+         case 3:
+        {
+            self.title=@"评论";
+            
+        }
+            
+        default:
+            break;
+    }
+}
+
+-(void)initView{
+    self.tableView=[[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStylePlain];
+    self.tableView.delegate=self;
+    self.tableView.dataSource=self;
+    self.tableView.rowHeight=50;
+    self.tableView.backgroundColor=kColor(242, 242, 242);
+    self.tableView.separatorStyle=UITableViewCellSeparatorStyleNone;
+    [self.tableView registerNib:[UINib nibWithNibName:@"CareFansInfoCell" bundle:nil] forCellReuseIdentifier:@"CareFansInfoCell"];
+
+    self.tableView.mj_header=[MJRefreshNormalHeader headerWithRefreshingTarget:self refreshingAction:@selector(loadNewData)];
+    self.tableView.mj_footer=[MJRefreshBackNormalFooter footerWithRefreshingTarget:self refreshingAction:@selector(loadMoreData)];
+    [self.view addSubview:self.tableView];
+    
+    
+    self.label=[Utils initLabelWithFrame:CGRectMake(0, 100, kScreenW, 40) text:self.nullText font:15 tintColor:[UIColor lightGrayColor]];
+    
+    self.label.center=self.view.center;
+    [self.view addSubview:self.label];
+    //如果数据为空时，将label隐藏
+    if (self.dataArray.count!=0) {
+        self.label.hidden=YES;
+    }
+    
+}
+
+-(void)loadNewData{
+    [self.dataArray removeAllObjects];
+    _pageCount=1;
+    [self initData];
+}
+
+-(void)loadMoreData{
+    _pageCount++;
+    [self initData];
+}
+-(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    CareFansInfoCell *cell=[tableView dequeueReusableCellWithIdentifier:@"CareFansInfoCell" forIndexPath:indexPath];
+    [cell initViewWithUserModel:self.dataArray[indexPath.row]];
+    cell.careButton.tag=100+indexPath.row;
+    if (self.barTextType==2) {
+        cell.careButton.hidden=YES;
+    }
+    if(self.barTextType==3){
+        cell.headerImageView.layer.cornerRadius=cell.headerImageView.frame.size.width/2.0;
+        cell.headerImageView.layer.masksToBounds=YES;
+        cell.careButton.hidden=YES;
+    }
+    return cell;
+}
+
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return 100;
+}
+
+-(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return self.dataArray.count;
+    
+}
+
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    UserDetailController *controller=[[UserDetailController alloc] init];
+    UserModel *model=self.dataArray[indexPath.row];
+    [ConfigModel shareConfigModel].user_id=model.user_id;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+-(NSMutableArray *)dataArray{
+    if (_dataArray==nil) {
+        _dataArray=[[NSMutableArray alloc] init];
+    }
+    return _dataArray;
+}
+
+@end

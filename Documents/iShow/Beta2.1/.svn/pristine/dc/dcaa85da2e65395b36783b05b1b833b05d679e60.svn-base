@@ -1,0 +1,23 @@
+//
+//  VideoTableViewCell.h
+//  VideoProject
+//
+//  Created by storm on 16/9/10.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "TopicModel.h"
+@interface VideoTableViewCell : UITableViewCell
+
+@property (weak, nonatomic) IBOutlet UIImageView *headerImageView;
+
+@property (weak, nonatomic) IBOutlet UILabel *titleLabel;
+@property (weak, nonatomic) IBOutlet UILabel *describeLabel;
+@property (weak, nonatomic) IBOutlet UILabel *playNumLabel;
+@property (weak, nonatomic) IBOutlet UILabel *videoNumLabel;
+
+@property (nonatomic, strong) TopicModel *model;
+
+-(void)initViewWithModel:(TopicModel *)model;
+@end

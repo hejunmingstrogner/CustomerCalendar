@@ -1,0 +1,13 @@
+//
+//  ErrorCodeUtils.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/10.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface ErrorCodeUtils : NSObject
++(NSString *)getErrorTitleWithErrorCode:(NSInteger )errorCode;
+@end

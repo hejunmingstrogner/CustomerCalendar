@@ -1,0 +1,227 @@
+//
+//  ClassifyDetailController.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "ClassifyDetailController.h"
+//#import "MUCollectionViewFlowLayout.h"
+//#import "UserDetailController.h"
+//#import "DetailViewController.h"
+//#import "ShareListModel.h"
+//#import "BannerRootModel.h"
+#import "BaseCollectionVIew.h"
+
+//#define kCell @"BaseCell"
+//#define kFooter @"footer"
+//static NSString * const JGShopId = @"shop";
+//static NSString * HeaderCell = @"headerCellHot";
+
+@interface ClassifyDetailController ()
+<MUCollectionViewFlowLayoutDelegate,UICollectionViewDelegate,UICollectionViewDataSource,CellDidSelectDelegate>
+
+//@property (nonatomic, strong) NSMutableArray *dataSource;
+//@property (nonatomic, strong) NSMutableArray *scrollImagesArray;
+//@property (nonatomic, assign) int pageCount;
+//@property (nonatomic, strong) NSMutableArray *heightArray;
+//@property (nonatomic, strong) ScrollView *scrollView;
+//@property (nonatomic, strong) UICollectionView *collectionView;
+//@property (nonatomic, strong) NSMutableArray *bannerArray;
+@end
+
+@implementation ClassifyDetailController
+
+-(instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        self.hidesBottomBarWhenPushed = YES;
+    }
+    return self;
+}
+
+
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.view.backgroundColor = [UIColor whiteColor];
+    MUCollectionViewFlowLayout *layout=[[MUCollectionViewFlowLayout alloc] init];
+    layout.minimumLineSpacing=10;
+    layout.minimumInteritemSpacing=10;
+    layout.sectionInsets=UIEdgeInsetsMake(10, 0, 10, 0);
+    layout.columnCount=2;
+    BaseCollectionVIew *collectionView=[[BaseCollectionVIew alloc] initWithFrame:CGRectMake(0, 0, self.view.width, self.view.height) collectionViewLayout:layout];
+    collectionView.bannerDict=@{@"banner_location":@"home"};
+    collectionView.cellDelegate=self;
+    collectionView.urlString=@"Topic/getTopicVideos";
+    collectionView.paraDic=self.topic_id;
+    [collectionView loadDataSource];
+    [self.view addSubview:collectionView];
+    
+    
+    
+    
+}
+
+-(void)cellDidSelectedWithShareModel:(ShareVideosInfoModel *)model{
+    DetailViewController2 *detailVc=[[DetailViewController2 alloc] init];
+    detailVc.parameterUrl = @"Share/getShareVideosInfo";
+    detailVc.parameterDic =@{@"share_id":@([model.share_id intValue])};
+    
+    [self.navigationController pushViewController:detailVc animated:YES];
+}
+//- (void)loadMoreData {
+//    _pageCount++;
+//    [self initializeUserSource];
+//}
+//- (void)loadNewData {
+//    [self.dataSource removeAllObjects];
+//    _pageCount = 0;
+//    [self initializeUserSource];
+//}
+//
+//- (void)initializeUserSource{
+//    [[NetworkingHelper shareINstance] GET:@"share/getsharevideos" dict:@{@"pg":@(_pageCount)} succeed:^(id data) {
+//        //        NSLog(@"%@",data);
+//        self.pageCount = [data[@"values"][@"total"] intValue];
+//        //        NSLog(@"--- %d",_total);
+//        ShareListRootModel *rootModel = [[ShareListRootModel alloc]initWithDictionary:data[@"values"] error:nil];
+//        [_dataSource addObjectsFromArray:rootModel.list];
+//        for (int index = 0; index < _dataSource.count; index++) {
+//            ShareListModel *model =  _dataSource[index];
+//            CGFloat imageHeight=[Utils getImageHeightWithUrl:model.share_image withFrameWidth:(kScreenW-20)/2.0];
+//            CGFloat textheight=[Utils changeStationWidth:model.share_name anWidthTxtt:(kScreenW-20)/2.0 anfont:14];
+//            [self.heightArray addObject:@(imageHeight+textheight)];
+//
+//
+//        }
+//        [self.collectionView reloadData];
+//        if (_pageCount >= self.pageCount) {
+//            [self.collectionView.mj_footer endRefreshingWithNoMoreData];
+//        } else {
+//            [self.collectionView.mj_footer endRefreshing];
+//        }
+//        [self.collectionView.mj_header endRefreshing];
+//    } failure:^(NSError *error) {
+//        [self.collectionView.mj_footer endRefreshing];
+//        [self.collectionView.mj_header endRefreshing];
+//        NSLog(@"%@",error);
+//    }];
+//    //轮播图
+//    [[NetworkingHelper shareINstance] GET:@"Banner/getBanner" dict:@{@"banner_location":@"home"} succeed:^(id data) {
+//        //        NSLog(@"%@",data);
+//        BannerRootModel *rootModel = [[BannerRootModel alloc]initWithDictionary:data[@"values"] error:nil];
+//        [self.bannerArray addObjectsFromArray:rootModel.list];
+//        self.scrollView.modelArray = self.bannerArray;
+//    } failure:^(NSError *error) {
+//        NSLog(@"%@",error);
+//    }];
+//
+//}
+//
+//
+//#pragma mark --UICollectionViewDelegate,UICollectionViewDataSource,MUCollectionViewFlowLayoutDelegate
+//- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+//    //    NSLog(@"-------%ld",self.dataSource.count);
+//    return self.dataSource.count;
+//}
+//
+//- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+//    DetailViewController2 *detailVc=[[DetailViewController2 alloc] init];
+//    //  DetailViewController *detailVc = [[DetailViewController alloc]init];
+//    ShareListModel *model = self.dataSource[indexPath.row];
+//    detailVc.parameterUrl = @"Share/getShareVideosInfo";
+//    detailVc.parameterDic =@{@"share_id":@([model.share_id intValue])};
+//
+//    [self.navigationController pushViewController:detailVc animated:YES];
+//}
+//
+//
+//- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+//
+//    BaseCell *cell=(BaseCell *)[collectionView dequeueReusableCellWithReuseIdentifier:kCell forIndexPath:indexPath];
+//    cell.model=self.dataSource[indexPath.row];
+//
+//    return cell;
+//}
+//- (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout heightForItemAtIndexPath:(NSIndexPath *)indexPath {
+//
+//    return [self.heightArray[indexPath.row] floatValue]+45;
+//
+//}
+//
+//- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout referenceSizeForHeaderInSection:(NSInteger)section
+//{
+//    return CGSizeMake(kScreenW, kScrollHeight);
+//}
+//- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout referenceSizeForFooterInSection:(NSInteger)section
+//{
+//    return CGSizeMake(kScreenW, 1);
+//}
+//
+//- (UICollectionReusableView *)collectionView:(UICollectionView *)collectionView viewForSupplementaryElementOfKind:(NSString *)kind atIndexPath:(NSIndexPath *)indexPath
+//{
+//    //    UICollectionReusableView  *headerView=nil;
+//    if (kind == CZCollectionElementKindSectionHeader) {
+//        UICollectionReusableView * headerView = [collectionView dequeueReusableSupplementaryViewOfKind:kind withReuseIdentifier:HeaderCell forIndexPath:indexPath];
+//
+//        [headerView addSubview:self.scrollView];
+//        return headerView;
+//    } else if (kind == CZCollectionElementKindSectionFooter) {
+//        UICollectionReusableView *footer = [collectionView dequeueReusableSupplementaryViewOfKind:kind withReuseIdentifier:kFooter forIndexPath:indexPath];
+//        return footer;
+//    }
+//    return nil;
+//}
+//
+//#pragma mark -- Getter
+//- (UICollectionView *)collectionView {
+//    if (!_collectionView) {
+//        MUCollectionViewFlowLayout * layout = [[MUCollectionViewFlowLayout alloc] init];
+//        layout.minimumLineSpacing = 10;
+//        layout.minimumInteritemSpacing = 10;
+//        layout.sectionInsets = UIEdgeInsetsMake(10, 0, 10, 0);
+//        layout.columnCount = 2;
+//        //        layout.delegate = self;
+//        _collectionView = [[UICollectionView alloc]initWithFrame:CGRectMake(0,  0, self.view.bounds.size.width, self.view.bounds.size.height) collectionViewLayout:layout];
+//        _collectionView.dataSource = self;
+//        _collectionView.delegate = self;
+//        _collectionView.backgroundColor = kColor(242, 242, 242);
+//        //  [_collectionView registerClass:[VideoCollectionCell class] forCellWithReuseIdentifier:kCell];
+//        [_collectionView registerNib:[UINib nibWithNibName:kCell bundle:nil] forCellWithReuseIdentifier:kCell];
+//        [_collectionView registerClass:[UICollectionReusableView class] forSupplementaryViewOfKind:CZCollectionElementKindSectionHeader withReuseIdentifier:HeaderCell];
+//        [_collectionView registerClass:[UICollectionReusableView class] forSupplementaryViewOfKind:CZCollectionElementKindSectionFooter withReuseIdentifier:kFooter];
+//        [self.view addSubview:_collectionView];
+//
+//    }
+//    return _collectionView;
+//
+//}
+//
+//- (NSMutableArray *)heightArray {
+//    if (!_heightArray) {
+//        _heightArray = [NSMutableArray array];
+//
+//    }
+//    return _heightArray;
+//}
+//- (NSMutableArray *)dataSource {
+//    if (!_dataSource) {
+//        _dataSource = [NSMutableArray array];
+//    }
+//    return _dataSource;
+//}
+//- (NSMutableArray *)bannerArray {
+//    if (!_bannerArray) {
+//        _bannerArray = [NSMutableArray array];
+//    }
+//    return _bannerArray;
+//}
+//
+//
+//
+@end
+
+

@@ -1,0 +1,51 @@
+//
+//  AlertView.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/14.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "AlertView.h"
+#import "AlertUtils.h"
+@implementation AlertView
+
++(instancetype)instanceAlertView{
+    NSArray *array=[[NSBundle mainBundle] loadNibNamed:@"AlertView" owner:self options:nil];
+    
+    return [array objectAtIndex:0];
+}
+
++(AlertView *)instanceAlertContentView{
+    static AlertView *alertContentView=nil;
+    @synchronized (self) {
+        if (!alertContentView) {
+            alertContentView=[[AlertView alloc] init];
+            [alertContentView initView];
+        }
+        
+    }
+    return alertContentView;
+}
+
+-(void)initView{
+   self.alertContentView=[[[NSBundle mainBundle] loadNibNamed:@"AlertView" owner:self options:nil] lastObject];
+    
+}
+
+- (IBAction)falseButtonClick:(id)sender {
+    AlertUtils *utls=(AlertUtils *)self.superview;
+    [utls hide];
+}
+
+- (IBAction)yesButtonClick:(id)sender {
+    AlertUtils *utils=(AlertUtils *)self.superview;
+    [utils hide];
+    if ([self.delegate respondsToSelector:@selector(alertContentYesButtonClick)]) {
+        [self.delegate alertContentYesButtonClick];
+    }
+   
+}
+
+
+@end

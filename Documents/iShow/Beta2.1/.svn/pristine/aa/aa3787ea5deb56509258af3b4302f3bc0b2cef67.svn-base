@@ -1,0 +1,36 @@
+/*
+ Copyright(C) 2011-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+class VideoDecoderWrp {
+public:
+    VideoDecoderWrp();
+    ~VideoDecoderWrp();
+    void setDataSource(const char* video);
+    int  getDuration();
+    int  getFps();
+    void setOffset(int msec);
+    void startReadMovie();
+    void stopReadMovie(void);
+    unsigned char* getImageBuffer(void);
+    int  getFrameNo(void);
+    void releaseImageBuffer(void);
+    bool isPlaying();
+private:
+    void *mObj;
+    void *mFrame;
+};
+
+class writeMovieWrp
+{
+public:
+    writeMovieWrp();
+    ~writeMovieWrp();
+    bool startWriteMovie(const char *video, int width, int height, int fps, int bitrate);
+    bool appendFrame(unsigned char* img, int width, int height, bool block);
+    void finish();
+    bool addAudio(const char* video, const char* audio, const char *media);
+private:
+    void *mObj;
+};
+

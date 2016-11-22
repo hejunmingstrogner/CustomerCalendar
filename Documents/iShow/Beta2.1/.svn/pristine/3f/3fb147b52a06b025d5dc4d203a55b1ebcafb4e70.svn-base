@@ -1,0 +1,28 @@
+//
+//  converView.h
+//  testone
+//
+//  Created by 何俊明 on 16/11/11.
+//  Copyright © 2016年 何俊明. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "AlertView.h"
+
+@class converView;
+
+@protocol converViewDelegate <NSObject>
+
+-(void)converViewyesButton:(converView *)conview;
+
+@end
+
+@interface converView : UIView <AlertContentViewYesButtonClickDelegate>
+
+@property (nonatomic) CGFloat progress;
+
+@property (nonatomic) id<converViewDelegate> delegate;
+
++(converView *)createConterViewobj:(id<converViewDelegate>)vc;
+
+@end

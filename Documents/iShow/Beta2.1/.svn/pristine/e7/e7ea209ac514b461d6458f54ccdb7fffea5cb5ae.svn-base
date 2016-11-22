@@ -1,0 +1,36 @@
+//
+//  VideoModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/19.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <JSONModel/JSONModel.h>
+
+@protocol ShareListModel <NSObject>
+@end
+
+@interface VideoModel : JSONModel
+//@property (nonatomic, assign) NSInteger video_id;//分享视频id
+//@property (nonatomic, copy) NSString *video_url; //分享视频地址
+//@property (nonatomic, strong) NSArray *videos;
+
+
+@property (nonatomic,strong ) NSString <Optional> *share_id;
+@property (nonatomic,strong ) NSString <Optional> *share_name;
+@property (nonatomic,strong ) NSString <Optional> *share_image;
+@property (nonatomic,strong ) NSString <Optional> *video_id;
+@property (nonatomic,strong ) NSString <Optional> *share_zan_count;
+@property (nonatomic,strong ) NSString <Optional> *share_follow_count;
+@property (nonatomic,strong ) NSString <Optional> *share_share_count;
+@property (nonatomic,strong ) NSString <Optional> *share_view_count;
+@property (nonatomic,strong ) NSString <Optional> *theme_name;
+@property (nonatomic,strong ) NSString <Optional> *video_url;
+@property (nonatomic,strong ) NSString <Optional> *user_id;
+@property (nonatomic,strong ) NSString <Optional> *user_nick_name;
+@property (nonatomic,strong ) NSString <Optional> *user_image;
+
+@property (nonatomic,strong ) NSString <Optional> * height;
+@property (nonatomic,strong ) NSString <Optional> * widht;
+@end

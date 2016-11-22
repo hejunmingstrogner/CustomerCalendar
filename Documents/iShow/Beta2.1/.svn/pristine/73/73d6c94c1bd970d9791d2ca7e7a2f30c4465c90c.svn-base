@@ -1,0 +1,54 @@
+//
+//  CompileHeaderViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "CompileHeaderViewController.h"
+#import "ChangeHeaderController.h"
+#import "PlayVideoController.h"
+@interface CompileHeaderViewController ()
+@property (weak, nonatomic) IBOutlet UIImageView *buttonImage;
+
+@end
+
+@implementation CompileHeaderViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.title = @"主题编辑";
+    // Do any additional setup after loading the view from its nib.
+    UIButton *someButton= [UIButton buttonWithType:UIButtonTypeCustom];
+    someButton.frame = CGRectMake(0, 0, 60, 40);
+    [someButton addTarget:self action:@selector(NextController) forControlEvents:UIControlEventTouchUpInside];
+
+    [someButton setTitle:@"下一步" forState:UIControlStateNormal];
+    [someButton setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+        someButton.titleLabel.font = [UIFont systemFontOfSize:17];
+//    [someButton setShowsTouchWhenHighlighted:YES];
+    UIBarButtonItem* someBarButtonItem= [[UIBarButtonItem alloc] initWithCustomView:someButton];
+    self.navigationItem.rightBarButtonItem = someBarButtonItem;
+}
+
+- (void)NextController {
+    [self.navigationController pushViewController:[[PlayVideoController alloc]init] animated:NO];
+
+}
+
+- (IBAction)action_changeHeader:(UIButton *)sender {
+    [self.navigationController pushViewController:[[ChangeHeaderController alloc]init] animated:YES];
+}
+
+/*
+#pragma mark - Navigation
+
+// In a storyboard-based application, you will often want to do a little preparation before navigation
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    // Get the new view controller using [segue destinationViewController].
+    // Pass the selected object to the new view controller.
+}
+*/
+
+@end

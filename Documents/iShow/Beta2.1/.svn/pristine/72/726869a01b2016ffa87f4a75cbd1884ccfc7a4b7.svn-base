@@ -1,0 +1,35 @@
+//
+//  MyVideoController.m
+//  VideoProject
+//
+//  Created by storm on 16/9/6.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "MyVideoController.h"
+
+@interface MyVideoController ()
+
+@end
+
+@implementation MyVideoController
+
+
+
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.title=@"我的视频";
+    self.view.backgroundColor=[UIColor whiteColor];
+   
+}
+
+
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+
+@end

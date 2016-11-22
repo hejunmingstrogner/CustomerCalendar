@@ -1,0 +1,17 @@
+//
+//  ChooseImageViewController.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/11/7.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+typedef void (^ChangHeader)(UIImageView *headerImage);
+@interface ChooseImageViewController : UIViewController
+- (UIImage*) getVideoPreViewImage:(NSURL *)videoPath time:(CMTime)cmTime;
+@property (strong, nonatomic) void (^(imageBlock)) (UIImage *selectImage);
+@property (strong, nonatomic) NSString *videoPath;
+@property (copy, nonatomic) ChangHeader black;
+@end

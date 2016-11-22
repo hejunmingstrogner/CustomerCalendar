@@ -1,0 +1,83 @@
+//
+//  UnloginFifthViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/20.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "UnloginFifthViewController.h"
+#import "CareFansInfoController.h"
+#import "FavoriteVideoCOntroller.h"
+#import "PlayHistoryController.h"
+#import "SettingController.h"
+@interface UnloginFifthViewController ()
+
+@end
+
+@implementation UnloginFifthViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self initView];
+   
+    
+}
+
+-(void)initView{
+    self.topView.y=128.0*kDistanceHeightRatio;
+    self.bottomView.y=CGRectGetMaxY(self.topView.frame)+20.0*kDistanceHeightRatio;
+    self.playHistoryNumLabel.text=[NSString stringWithFormat:@"%ld",[[VideoModelDBManager shareManager] selectAll].count];
+}
+//弹出未登录界面
+-(void)showAlertView{
+    
+    UnloginAlertView *unloginView=[UnloginAlertView initUnloginView];
+    unloginView.layer.cornerRadius=10;
+    unloginView.frame=CGRectMake(0, 0, 600/kPictureW*kScreenW, 536/kPictureH*kScreenH);
+    AlertUtils *utils=[[AlertUtils alloc] init];
+    utils.contentView=unloginView;
+    [utils show];
+    
+}
+//关注
+- (IBAction)careButtonClick:(id)sender {
+    [self showAlertView];
+
+
+}
+//粉丝
+- (IBAction)fansButtonClick:(id)sender {
+    [self showAlertView];
+
+   
+}
+
+//消息
+- (IBAction)infoButtonClick:(id)sender {
+    [self showAlertView];
+ 
+}
+
+//赞过的视频
+- (IBAction)favoriteVideoButtonClick:(id)sender {
+    [self showAlertView];
+}
+- (IBAction)playHistoryButtonClick:(id)sender {
+    [ConfigModel shareConfigModel].controllerType=playHistoryController;
+    [self.navigationController pushViewController:[[PlayHistoryController alloc] init] animated:YES];
+}
+
+- (IBAction)settingButtonClick:(id)sender {
+    [self.navigationController pushViewController:[[SettingController alloc] init] animated:YES];
+}
+
+
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+
+@end

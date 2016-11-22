@@ -1,0 +1,40 @@
+//
+//  MyButton.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/22.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "MyButton.h"
+
+@implementation MyButton
+- (instancetype)initWithButtonWith:(NSString *)title point:(CGPoint)point font:(NSInteger)font
+{
+    self = [super init];
+    if (self) {
+        [self setTitle:title forState:UIControlStateNormal];
+        self.layer.cornerRadius = self.frame.size.height/2.0;
+            CGSize size =[self.titleLabel.text sizeWithAttributes:@{NSFontAttributeName:[UIFont systemFontOfSize:font]}];
+            [self setTitleColor:kColor(251, 0, 60) forState:UIControlStateNormal];
+            self.layer.borderColor = kColor(251, 0, 60).CGColor;
+            //    btn.layer.borderWidth = 2.f;
+            self.clipsToBounds = YES;
+            self.layer.borderWidth = 1.4f;//边框宽度，
+            self.frame = CGRectMake(point.x - size.width/2.0 , point.y - size.height/2.0, size.width*1.8  , size.height*1.6);
+            self.layer.cornerRadius = size.height;        
+    }
+    return self;
+}
+
+- (void)addTapBlock:(ButtonBlock)block
+{
+    _block = block;
+    [self addTarget:self action:@selector(buttonAction:) forControlEvents:UIControlEventTouchUpInside];
+}
+- (void)buttonAction:(UIButton *)button
+{
+    _block(button);
+}
+
+@end

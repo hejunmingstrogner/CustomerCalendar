@@ -1,0 +1,21 @@
+//
+//  NavigationBarView.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "NavigationBarView.h"
+
+@implementation NavigationBarView
+
++(instancetype)initNavigationBarView{
+    NSArray *array=[[NSBundle mainBundle] loadNibNamed:@"NavigationBarView" owner:self options:nil];
+    return [array objectAtIndex:0];
+}
+
+-(void)layoutSubviews{
+    
+}
+@end

@@ -1,0 +1,68 @@
+//
+//  YXVideoComponentVideo.h
+//  YXVideoKit
+//
+//  Created by Simon on 14-6-17.
+//  Copyright (c) 2014年 Xuan Yi Xia Technology Co., LTD. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <AVFoundation/AVFoundation.h>
+
+@interface YXVideoComponentVideo : NSObject
+//视频原始尺寸
+@property (nonatomic,readonly) CGSize naturalSize;
+//视频转转以后的尺寸
+@property (nonatomic,readonly) CGSize normalSize;
+//视频文件名（指向原文件）
+@property (nonatomic, retain) NSString *originalFileName;
+//源文件的地址
+@property (nonatomic, retain) NSString *originalFilePath;
+//视频AVAsset，可以变来变去（速度or反向）
+@property (nonatomic,retain) AVAsset *asset;
+//视频矩阵
+@property (nonatomic,assign) CGAffineTransform preferredTransform;
+//是否图片转视频
+@property (nonatomic,assign) BOOL isImageToVideo;
+//初始顺序
+@property (nonatomic,assign) NSUInteger originalOrder;
+//视频剪辑区域（可变）
+@property (nonatomic,assign)   CMTimeRange clipTimeRange;
+//播放速率
+@property (nonatomic,assign) CGFloat playRate;
+//播放方向
+@property (nonatomic,assign) BOOL reversePlay;
+//声音效果
+@property (nonatomic,assign) NSInteger soundEffectIndex;
+//后滤镜
+@property (nonatomic,assign) NSInteger processerIndex;
+//转场索引
+@property (nonatomic,assign) NSInteger transitionIndex;
+//图片效果索引
+@property (nonatomic,assign) NSInteger imageEffectIndex;
+//是否静音
+@property (nonatomic,assign) BOOL muteAudio;
+//是否翻转
+@property (nonatomic,assign) BOOL needFlip;
+//用户自定义矩阵字符串
+@property (nonatomic,retain) NSString *customTransformString;
+/**
+ *  创建实例
+ *
+ *  @param URL 视频URL
+ *
+ *  @return 返回实例对象
+ */
++ (id)assetWithURL:(NSURL *)URL;
+
+- (id)initWithAsset:(AVAsset*)asset;
+
+/**
+ *  获取视频截图
+ *
+ *  @param size 设置视频截图尺寸
+ *
+ *  @return 返回视频截图UIimage对象
+ */
+- (UIImage *)thumb:(CGSize)size;
+@end

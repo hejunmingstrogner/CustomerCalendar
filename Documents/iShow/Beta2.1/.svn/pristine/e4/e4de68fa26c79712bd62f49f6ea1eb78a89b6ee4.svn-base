@@ -1,0 +1,104 @@
+//
+//  CXHotDetailLayout.m
+//  VideoProject
+//
+//  Created by once_CH on 16/9/9.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "CXHotDetailLayout.h"
+#import "UIView+CXExension.h"
+
+@interface CXHotDetailLayout ()
+// collectionView 的相对于 contentSize 的最左边中心点（x或y）
+@property (nonatomic, assign) CGFloat cCenter;
+// attribute 的相对于 contentSize 的最左边中心点（x或y）
+@property (nonatomic, assign) CGFloat aCenter;
+// collectionView 的长或宽
+@property (nonatomic, assign) CGFloat cSize;
+// item 的长或宽
+@property (nonatomic, assign) CGFloat iSize;
+@end
+
+
+@implementation CXHotDetailLayout
+#pragma mark Public Method
+//+ (WQLayout *)createWQLayout{
+//    return [[[self class] alloc] init];
+//}
++ (CXHotDetailLayout *)createCXLayout {
+    return [[[self class]alloc] init];
+}
+#pragma mark System Method
+- (void)prepareLayout{
+    [super prepareLayout];
+    // 设置内边距,使第一个item居中
+//    CGFloat inset = self.scrollDirection == UICollectionViewScrollDirectionHorizontal ? (self.collectionView.frame.size.width - self.itemSize.width) * 0.5 : (self.collectionView.frame.size.height - self.itemSize.height);
+    self.sectionInset = self.scrollDirection == UICollectionViewScrollDirectionHorizontal ? UIEdgeInsetsMake(0, 0, 0, 0) : UIEdgeInsetsMake(0, 0, 0, 0);
+    
+    // collectionView 的相对于 contentSize 的最左边中心点（x或y）
+    self.cCenter = self.scrollDirection == UICollectionViewScrollDirectionHorizontal ? self.collectionView.contentOffset.x + self.collectionView.width/2.0 : self.collectionView.contentOffset.y + self.collectionView.height/2.0;
+    
+    // collectionView 的长或宽
+    self.cSize = self.scrollDirection == UICollectionViewScrollDirectionHorizontal ? self.collectionView.width : self.collectionView.height;
+    
+    self.iSize = self.scrollDirection == UICollectionViewScrollDirectionHorizontal ? self.itemSize.width : self.itemSize.height;
+}
+
+-(NSArray<UICollectionViewLayoutAttributes *> *)layoutAttributesForElementsInRect:(CGRect)rect{
+    NSArray *attributes = [super layoutAttributesForElementsInRect:rect];
+    NSMutableArray<UICollectionViewLayoutAttributes *> *att = [[NSMutableArray alloc] initWithCapacity:attributes.count];
+    for (UICollectionViewLayoutAttributes *attribute in attributes) {
+        self.aCenter = self.scrollDirection == UICollectionViewScrollDirectionHorizontal ? attribute.center.x : attribute.center.y;
+        //        if (self.type == WQScaleLayout) {
+        [att addObject:[self scaleWithAttribute:attribute]];
+        //        }else if(self.type == WQRotationLayout1) {
+        //            [att addObject:[self rotation1WithAttribute:attribute]];
+        //        }else if(self.type == WQRotationLayout2) {
+        //            [att addObject:[self rotation2WithAttribute:attribute]];
+        //        }else {
+        //            [att addObject:[self rotation3WithAttribute:attribute]];
+        //        }
+    }
+    return att;
+}
+
+- (CGPoint)targetContentOffsetForProposedContentOffset:(CGPoint)proposedContentOffset
+                                 withScrollingVelocity:(CGPoint)velocity{
+    CGRect rect;
+    rect.origin.x = self.scrollDirection == UICollectionViewScrollDirectionHorizontal ? proposedContentOffset.x : 0;
+    rect.origin.y = self.scrollDirection == UICollectionViewScrollDirectionHorizontal ? 0 : proposedContentOffset.y;
+    rect.size = self.collectionView.bounds.size;
+    NSArray *attributes = [super layoutAttributesForElementsInRect:rect];
+    
+    // 得到离 rect 中心点最近的值
+    CGFloat min = MAXFLOAT;
+    for (UICollectionViewLayoutAttributes *attribute in attributes) {
+        self.aCenter = self.scrollDirection == UICollectionViewScrollDirectionHorizontal ? attribute.center.x : attribute.center.y;
+        min = MIN(fabs(min), fabs(self.aCenter - self.cCenter)) == fabs(min) ? min : self.aCenter - self.cCenter;
+    }
+    
+    // 调节移动停止后的 Offset
+    if (self.scrollDirection == UICollectionViewScrollDirectionHorizontal) {
+        proposedContentOffset.x = proposedContentOffset.x + min;
+    }else {
+        proposedContentOffset.y = proposedContentOffset.y + min;
+    }
+    return proposedContentOffset;
+}
+
+- (BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds{
+    return !CGRectEqualToRect(newBounds, self.collectionView.bounds);
+}
+
+#pragma mark Scale Flow Layout
+- (UICollectionViewLayoutAttributes *)scaleWithAttribute:(UICollectionViewLayoutAttributes *)attribute{
+    CGFloat scale = 1 - fabs(self.aCenter - self.cCenter)/self.cSize;
+    //    attribute.transform = CGAffineTransformScale(CGAffineTransformIdentity, scale, scale);
+    //    [UIView animateWithDuration:0.2 animations:^{
+    attribute.alpha = scale;
+    //    }];
+    return attribute;
+}
+@end
+

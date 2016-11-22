@@ -1,0 +1,15 @@
+//
+//  EffectCollectionViewCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/11/1.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "YXVideoEffectModel.h"
+@interface EffectCollectionViewCell : UICollectionViewCell
+@property (strong, nonatomic) YXVideoEffectModel *effectModel;
+@property (strong, nonatomic) UILabel *titleLabel;
+@property (strong, nonatomic) UIImageView *roundImageView;
+@end

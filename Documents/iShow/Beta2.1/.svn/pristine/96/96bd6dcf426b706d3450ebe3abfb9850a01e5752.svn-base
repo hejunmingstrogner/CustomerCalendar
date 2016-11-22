@@ -1,0 +1,84 @@
+//
+//  RunPageController.m
+//  VideoProject_0.1Beta
+//
+//  Created by 徐琦 on 16/10/7.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "RunPageController.h"
+
+@interface RunPageController()<UIScrollViewDelegate>
+@property (nonatomic, strong) UIScrollView *runScrollView;
+@property (nonatomic, strong) UIPageControl *pageController;
+@property (nonatomic, strong) UIButton *startButton;
+
+@end
+@implementation RunPageController
+
+-(instancetype)initWithFrame:(CGRect)frame{
+    self=[super initWithFrame:frame];
+    if (self) {
+        self.runScrollView=[[UIScrollView alloc] initWithFrame:self.frame];
+        self.runScrollView.pagingEnabled=YES;
+        self.runScrollView.contentSize=CGSizeMake(self.frame.size.width*6, self.frame.size.height);
+        self.runScrollView.bounces=NO;
+        [self addSubview:self.runScrollView];
+        self.pageController=[[UIPageControl alloc] initWithFrame:CGRectMake(0, self.frame.size.height*.8, self.frame.size.width, 10)];
+        self.pageController.currentPageIndicatorTintColor=kColor(204,204,204);
+        self.pageController.pageIndicatorTintColor=kColor(254, 27, 98);
+        self.pageController.numberOfPages=6;
+        [self addSubview:self.pageController];
+        CGPoint scrollPoint=CGPointMake(0, 0);
+        [self.runScrollView setContentOffset:scrollPoint animated:YES];
+        self.runScrollView.showsHorizontalScrollIndicator=NO;
+        [self creatImageView];
+    }
+    return self;
+}
+
+
+-(void)creatImageView{
+    BOOL firstLogin=readIsFirstLogin;
+    
+    if(firstLogin==NO){
+        isFirstLogin(YES);
+        for (int i=0; i<4; i++) {
+            UIImageView *imageView=[[UIImageView alloc] initWithFrame:CGRectMake(kScreenW*i, 0, kScreenW, kScreenH)];
+            imageView.image=[UIImage imageNamed:[NSString stringWithFormat:@"启动页%d",i+1]];
+            imageView.contentMode=UIViewContentModeScaleAspectFit;
+            self.runScrollView.delegate=self;
+            [self.runScrollView addSubview:imageView];
+            if (i==4) {
+                self.startButton=[[UIButton alloc] initWithFrame:CGRectMake(206.0/kPictureW*kScreenW, 940.0/kPictureH*kScreenH, kScreenW-206.0/kPictureW*kScreenW*2, 70.0/kPictureH*kScreenH)];
+                [self.startButton addTarget:self action:@selector(startButtonClick) forControlEvents:UIControlEventTouchUpInside];
+                [imageView addSubview:self.startButton];
+                self.startButton.backgroundColor=[UIColor clearColor];
+                imageView.userInteractionEnabled=YES;
+            }
+            
+        }
+
+    }else{
+       UIImageView *imageView=[[UIImageView alloc] initWithFrame:CGRectMake(0, 0, kScreenW, kScreenH)];
+        imageView.image=[UIImage imageNamed:@"启动"];
+         imageView.contentMode=UIViewContentModeScaleAspectFit;
+        [self.runScrollView addSubview:imageView];
+        
+        [UIView animateWithDuration:0.5 animations:^{
+            self.alpha = 0;
+        } completion:^(BOOL finished) {
+            [self removeFromSuperview];
+        }];
+    }
+}
+
+#pragma mark --UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView{
+    CGFloat PageIndictor = self.runScrollView.contentOffset.x/kScreenW;
+    self.pageController.currentPage = roundf(PageIndictor);
+}
+-(void)startButtonClick{
+    [self.delegate startButtonClick];
+}
+@end

@@ -1,0 +1,15 @@
+//
+//  TableViewBaseController.h
+//  VideoProject
+//
+//  Created by storm on 16/9/9.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface TableViewBaseController : UIViewController<UITableViewDelegate,UITableViewDataSource>
+@property (nonatomic, strong) UITableView *tableView;
+@property (nonatomic, strong) NSMutableArray *dataArray;
+@property (strong, nonatomic) NSString *cat_id;
+@end

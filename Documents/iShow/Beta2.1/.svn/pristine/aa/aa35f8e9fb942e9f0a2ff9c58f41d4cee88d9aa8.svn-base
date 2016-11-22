@@ -1,0 +1,28 @@
+//
+//  UINavigationBar+height.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/11/4.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "UINavigationBar+height.h"
+
+@implementation UINavigationBar (height)
+
+-(void)drawRect:(CGRect)rect{
+    self.backgroundColor=[UIColor yellowColor];
+    UIImage *image=[[UIImage alloc] init];
+    [image drawInRect:CGRectMake(0, 0, kScreenW, 88.0/kPictureH*kScreenH)];
+}
+
+-(void)layoutSubviews{
+    CGRect barFrame=self.frame;
+    barFrame.size.height=88.0/kPictureH*kScreenH;
+    self.frame=barFrame;
+    
+
+}
+
+
+@end

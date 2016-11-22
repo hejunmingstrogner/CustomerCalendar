@@ -1,0 +1,350 @@
+/*
+ Copyright(C) 2011-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include "MpFaceGenerator.h"
+#include "MpLog.h"
+
+#include "mptypes.h"
+#include "mpsynth.h"
+
+#define SIZE_256 (256.0f)
+#define SIZE_512 (512.0f)
+#define MP_YES   (1)
+#define MP_NO    (0)
+
+#ifdef MP_DEBUG
+// debug
+#include <time.h>
+#include <string.h>
+#include <sys/time.h>
+#endif
+
+namespace motionportrait {
+
+unsigned int defaltVal[DEFAULT_VAL_LEN] =
+{
+    0x00000000,
+    0x0000000c,
+    0x3ed5b595,
+    0x3f3c39bd,
+    0x3f102e55,
+    0x3f3d6f44,
+    0x3f2c11e4,
+    0x3f29f70e,
+    0x3f371ec1,
+    0x3ef42917,
+    0x3f2e7019,
+    0x3eac11e4,
+    0x3f221273,
+    0x3e87c2ec,
+    0x3f0b71eb,
+    0x3e4c2b0f,
+    0x3ee70154,
+    0x3e4f5382,
+    0x3ebf8a2b,
+    0x3e86b591,
+    0x3ea07e5a,
+    0x3eaa7dcc,
+    0x3e8e136e,
+    0x3ef18783,
+    0x3e9ff79d,
+    0x3f257e02,
+    0x00000006,
+    0x3f0d55a4,
+    0x3f016723,
+    0x3f10cfd1,
+    0x3f04ee5b,
+    0x3f17d36f,
+    0x3f060126,
+    0x3f1c663c,
+    0x3f03ab11,
+    0x3f18725c,
+    0x3effe261,
+    0x3f126666,
+    0x3effa312,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000006,
+    0x38342e30,
+    0x38383138,
+    0x3ed60000,
+    0x3f0489f4,
+    0x3ec8e12f,
+    0x3f04ed0b,
+    0x3ebcd185,
+    0x3f02a20a,
+    0x3ec8094e,
+    0x3efcf69d,
+    0x3ed418f8,
+    0x3efd0c5f,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000005,
+    0x3edf2410,
+    0x3ea1ac79,
+    0x3eef3f75,
+    0x3e9fa919,
+    0x3eff5afb,
+    0x3e9fa919,
+    0x3f07bb30,
+    0x3e9fa919,
+    0x3f0fc8e2,
+    0x3ea3affb,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x0000000c,
+    0x3f09568f,
+    0x3f00a06f,
+    0x3f0c3e75,
+    0x3f047b03,
+    0x3f1153ce,
+    0x3f07c793,
+    0x3f16c227,
+    0x3f095715,
+    0x3f1c8bfc,
+    0x3f08d068,
+    0x3f23632c,
+    0x3f0564c7,
+    0x3f23a68b,
+    0x3f00a85d,
+    0x3f1ddb87,
+    0x3efe28ed,
+    0x3f1833d7,
+    0x3efa64c3,
+    0x3f12d7d8,
+    0x3efa3a8e,
+    0x3f0d4834,
+    0x3efa5aee,
+    0x3f09d55e,
+    0x3efa4830,
+    0x0000000c,
+    0x3ee4c1ec,
+    0x3f00750c,
+    0x3edec2ce,
+    0x3f04319c,
+    0x3ed4f2d0,
+    0x3f070143,
+    0x3eca105a,
+    0x3f0849aa,
+    0x3ebce896,
+    0x3f077f9d,
+    0x3eb1dba9,
+    0x3f04575c,
+    0x3eafc0d3,
+    0x3f01f927,
+    0x3eba6139,
+    0x3efa77c4,
+    0x3ec7967d,
+    0x3ef6ab15,
+    0x3ed18dce,
+    0x3ef6f04a,
+    0x3edc8041,
+    0x3ef906ee,
+    0x3ee3bbc7,
+    0x3ef9f3c7,
+    0x00000004,
+    0x00000000,
+};
+float subVal[SUB_VAL_LEN] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f};
+
+MpFaceGenerator *MpFaceGenerator::sGenerator = NULL;
+int MpFaceGenerator::sRefCnt = 0;
+    
+MpFaceGenerator *MpFaceGenerator::GetInstance(const char *path)
+{
+    if(sGenerator == NULL){
+        sGenerator = new MpFaceGenerator(path);
+        sGenerator->mSynth = new MpSynth();
+        sGenerator->mSynth->Init(path, false);
+        sRefCnt += 1;
+    }
+    return sGenerator;
+}
+
+void MpFaceGenerator::DeleteInstance()
+{
+    if(sGenerator != NULL){
+        sRefCnt -= 1;
+        if(sRefCnt == 0){
+            delete sGenerator;
+            sGenerator = NULL;
+        }
+    }
+}
+
+MpFaceGenerator::MpFaceGenerator(const char *resPath) : pFaceGeneratorDelegate(NULL), mFaceImg(NULL), mIsExecSynth(false)
+{
+    int len = (int)strlen(resPath);
+    strncpy(this->mResPath, resPath, (len > (MAX_PATH - PATH_MARGIN)) ? (MAX_PATH - PATH_MARGIN) : len + 1);
+    
+    // preapare and start ctrl thread
+    pthread_cond_init(&this->mCnd, NULL);
+    pthread_mutex_init(&this->mMutex, NULL);
+    mSynthThRunnable = true;
+    pthread_create(&this->mSynthTh, NULL, launchSynthFunc, this);
+}
+
+MpFaceGenerator::~MpFaceGenerator()
+{
+    // wakeup ctrl thread
+    mSynthThRunnable = false;
+    pthread_mutex_lock(&this->mMutex);
+    pthread_cond_signal(&this->mCnd);
+    pthread_mutex_unlock(&this->mMutex);
+    
+    // wait ctrl thread finish
+    pthread_join(this->mSynthTh, NULL);
+    
+    // destroy thread resource
+    pthread_cond_destroy(&this->mCnd);
+    pthread_mutex_destroy(&this->mMutex);
+    
+    delete this->mSynth;
+}
+
+MpMovieResult MpFaceGenerator::GenerateFace(FaceImg *fImg)
+{
+    if(mIsExecSynth == true || fImg == NULL || fImg->mImg == NULL){
+        return kErrorInvalidParam;
+    }
+    
+    mFaceImg = fImg;
+    mIsExecSynth = true;
+    pthread_mutex_lock(&this->mMutex);
+    pthread_cond_signal(&this->mCnd);
+    pthread_mutex_unlock(&this->mMutex);
+    
+    return kSuccess;
+}
+
+
+void MpFaceGenerator::FreeFaceData(void *obj)
+{
+    MpSynth::DestroyFaceBin((mpFaceObject)obj);
+}
+    
+void *MpFaceGenerator::launchSynthFunc(void *obj)
+{
+    MpFaceGenerator *cl = reinterpret_cast<MpFaceGenerator*>(obj);
+    cl->synthFunc();
+    return NULL;
+}
+
+void MpFaceGenerator::synthFunc()
+{
+    while(this->mSynthThRunnable){
+        pthread_mutex_lock(&this->mMutex);
+        pthread_cond_wait(&this->mCnd, &this->mMutex);
+        pthread_mutex_unlock(&this->mMutex);
+        if(this->mSynthThRunnable == false){
+            break;
+        }
+        this->synthData();
+        mIsExecSynth = false;
+    }
+}
+
+void MpFaceGenerator::synthData()
+{
+    MpMovieResult ret = kSuccess;
+    mpResult err = MP_SUCCESS;
+    mpFaceObject obj = NULL;
+
+    mSynth->SetParami(MpSynth::TEX_SIZE, SIZE_512);
+    mSynth->SetParami(MpSynth::MODEL_SIZE, SIZE_256);
+    mSynth->SetParamf(MpSynth::FACE_SIZE, 0.5f);
+    mSynth->SetParamf(MpSynth::FACE_POS, 0.5f);
+    mSynth->SetParami(MpSynth::CROP_MARGIN, MP_YES);
+    
+    MpSynth::Img img = {mFaceImg->mImg->w, mFaceImg->mImg->h, mFaceImg->mImg->rgb, NULL};
+    if(mFaceImg->mModelName){
+        err = mSynth->MkOvrSynth(img, mFaceImg->mModelName, &obj);
+    }else{
+        mSynth->SetParamf(MpSynth::FACE_POS, -1.0f);
+        mSynth->SetParami(MpSynth::TEX_SIZE, img.w);
+        if(mFaceImg->mImg->alpha != NULL){
+            img.alpha = mFaceImg->mImg->alpha;
+        }
+#ifdef MP_DEBUG
+        struct timeval tv1, tv2;
+        gettimeofday(&tv1, NULL);
+#endif
+        //err = mSynth->Synth(img, &obj);
+
+        err = mSynth->Detect(img);
+        
+        MpSynth::Mpfp mpfp;
+        if(err != MP_SUCCESS){
+            // use default fp
+            defaltVal[DEFAULT_VAL_LEN - 1] = *(unsigned int*)(subVal);
+            MpSynth::Mpfp defaultMpfp;
+            memcpy(defaultMpfp.data_, (void*)defaltVal, DEFAULT_VAL_LEN*4);
+            mpfp.CopyFrom(defaultMpfp);
+            ret = kErrorDetectionFailed;
+        }else{
+            mSynth->GetMpfp(mpfp);
+        }
+        
+        mSynth->SetMpfp(mpfp);
+        err = mSynth->Synth(img, &obj);
+        
+#ifdef MP_DEBUG
+        gettimeofday(&tv2, NULL);
+        printf("%ld %d --- %ld %d\n", tv1.tv_sec, tv1.tv_usec, tv2.tv_sec, tv2.tv_usec);
+        printf("%ld\n", (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000);
+#endif
+    }
+    
+    //free(mInfo.img);
+    //if(mInfo.alphaImg) free(mInfo.alphaImg);
+    //delete mFaceImg;
+    if(this->pFaceGeneratorDelegate != NULL){
+        if(err != MP_SUCCESS){
+            ret = kErrorCoreInternal;
+            MpSynth::DestroyFaceBin(obj);
+            obj = NULL;
+        }
+        this->pFaceGeneratorDelegate->GenerateFaceFinished(ret, obj);
+    }
+    delete mFaceImg;
+    mFaceImg = NULL;
+    return;
+}
+}

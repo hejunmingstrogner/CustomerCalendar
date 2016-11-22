@@ -1,0 +1,17 @@
+//
+//  DetailViewController.h
+//  VideoProject
+//
+//  Created by once_CH on 16/9/8.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+//#import "ShareListModel.h"
+#import "ShareInfoRootModel.h"
+@interface DetailViewController : UIViewController
+@property (nonatomic , strong) ShareInfoRootModel *RootModel;
+//@property (nonatomic , assign) int share_id;
+@property (nonatomic, strong) NSDictionary *parameterDic;
+@property (nonatomic, copy) NSString *parameterUrl;
+@end

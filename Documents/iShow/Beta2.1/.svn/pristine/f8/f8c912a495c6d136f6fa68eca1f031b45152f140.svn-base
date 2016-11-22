@@ -1,0 +1,74 @@
+//
+//  BaseLayoutCell.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/20.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "BaseLayoutCell.h"
+#import "ShareListModel.h"
+@implementation BaseLayoutCell
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    self.bigImageView.contentMode=UIViewContentModeScaleAspectFill;
+    self.headImageView.contentMode=UIViewContentModeScaleAspectFill;
+    self.headImageView.layer.masksToBounds=YES;
+    self.headImageView.layer.cornerRadius=self.headImageView.width/2.0;
+}
+
+-(void)prepareForReuse{
+    self.bigImageView.image=nil;
+    self.headImageView.image=nil;
+    self.nameLabel.text=nil;
+    self.describeLabel.text=nil;
+    self.zanCountLabel.text=nil;
+}
+
+-(void)setModel:(ShareVideosInfoModel *)model{
+    _model=model;
+   
+    [self.bigImageView sd_setImageWithURL:[NSURL URLWithString:_model.share_image] placeholderImage:[UIImage imageNamed:@"Failed_to_load.png"]];
+   // [self.bigImageView sd_setImageWithURL:[NSURL URLWithString:_model.share_image]];
+   // self.bigImageView.contentMode=UIViewContentModeScaleAspectFill;
+   // self.bigImageView.width=self.contentView.width;
+   // self.bigImageView.clipsToBounds=YES;
+
+   // self.describeLabel.width=self.contentView.width;
+    
+    self.describeLabel.text=model.share_name;
+    self.nameLabel.text = _model.user_nick_name?_model.user_nick_name:@"正在加载";
+    int zan_count=   [_model.video_zan_count intValue];
+    self.zanCountLabel.text = zan_count ?[NSString stringWithFormat:@"%d",zan_count]:@"0";
+    [self.headImageView sd_setImageWithURL:[NSURL URLWithString:_model.user_image]];
+}
+
+//-(void)initCellWithModel:(ShareVideosInfoModel *)model imageHeight:(CGFloat)imageHeight textHeight:(CGFloat)textHeight{
+//    _model=model;
+//    [self.bigImageView sd_setImageWithURL:[NSURL URLWithString:_model.share_image]];
+//    self.bigImageView.contentMode=UIViewContentModeScaleAspectFill;
+//    self.bigImageView.width=self.contentView.width;
+//    self.bigImageView.clipsToBounds=YES;
+//    
+//    self.describeLabel.width=self.contentView.width;
+//    
+//    self.describeLabel.text=model.share_name;
+//    self.nameLabel.text = _model.user_nick_name?_model.user_nick_name:@"正在加载";
+//    int zan_count=   [_model.video_zan_count intValue];
+//    self.zanCountLabel.text = zan_count ?[NSString stringWithFormat:@"%d",zan_count]:@"0";
+//    [self.headImageView sd_setImageWithURL:[NSURL URLWithString:_model.user_image]];
+//    
+//    self.imageHeight=imageHeight;
+//    self.textHeight=textHeight;
+//    
+//   
+//}
+
+//-(void)layoutSubviews{
+//    [super layoutSubviews];
+//    self.bigImageView.height=self.imageHeight;
+//    self.describeLabel.y=CGRectGetMaxY(self.bigImageView.frame);
+//    self.describeLabel.height=self.textHeight;
+//}
+@end

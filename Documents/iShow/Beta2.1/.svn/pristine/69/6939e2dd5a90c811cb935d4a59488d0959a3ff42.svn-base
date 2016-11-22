@@ -1,0 +1,13 @@
+//
+//  UINavigationBar+height.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/11/4.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface UINavigationBar (height)
+@property(nonatomic, strong) UILabel *titleLabel;
+@end

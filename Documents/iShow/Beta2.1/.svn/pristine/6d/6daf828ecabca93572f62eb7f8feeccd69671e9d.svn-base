@@ -1,0 +1,108 @@
+//
+//  Utils.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "Utils.h"
+
+@implementation Utils
++(UIButton *)initButtonWithFrame:(CGRect)frame normalImage:(NSString *)normalImage selectImage:(NSString *)selectImage title:(NSString *)title{
+    UIButton *button=[[UIButton alloc] initWithFrame:frame];
+    [button setImage:[UIImage imageNamed:normalImage] forState:UIControlStateNormal];
+    [button setImage:[UIImage imageNamed:selectImage] forState:UIControlStateSelected];
+    [button setTitle:title forState:UIControlStateNormal];
+    [button setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+    return button;
+}
+
++(UILabel *)initLabelWithFrame:(CGRect)frame text:(NSString *)text font:(CGFloat)font tintColor:(UIColor *)color{
+    UILabel *label=[[UILabel alloc] initWithFrame:frame];
+    label.text=text;
+    label.font=[UIFont systemFontOfSize:font];
+    label.textColor=color;
+    label.textAlignment = NSTextAlignmentCenter;//居中
+    return label;
+}
+
++(UILabel *)initLabelWithText:(NSString *)text font:(CGFloat)font tintColor:(UIColor *)color{
+    UILabel *label=[[UILabel alloc] init];
+    label.text=text;
+    label.font=[UIFont systemFontOfSize:font];
+    label.textColor=color;
+   
+    
+    //设置label的行间距
+    NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc]initWithString:text];;
+    NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc]init];
+    [paragraphStyle setLineSpacing:5];
+    [attributedString addAttribute:NSParagraphStyleAttributeName value:paragraphStyle range:NSMakeRange(0, text.length)];
+    label.attributedText = attributedString;
+    
+     label.textAlignment = NSTextAlignmentCenter;//居中
+    return label;
+}
+
++(CGFloat)changeStationWidth:(NSString *)string anWidthTxtt:(CGFloat)widthText anfont:(CGFloat)fontSize{
+    
+    UIFont * tfont = [UIFont systemFontOfSize:fontSize];
+    
+    //高度估计文本大概要显示几行，宽度根据需求自己定义。 MAXFLOAT 可以算出具体要多高
+    
+    CGSize size =CGSizeMake(widthText,CGFLOAT_MAX);
+    
+    //    获取当前文本的属性
+    
+    NSDictionary * tdic = [NSDictionary dictionaryWithObjectsAndKeys:tfont,NSFontAttributeName,nil];
+    
+    //i获取文本需要的size，限制宽度
+    CGSize  actualsize =[string boundingRectWithSize:size options:NSStringDrawingUsesLineFragmentOrigin  attributes:tdic context:nil].size;
+    
+    return actualsize.height;
+    
+}
+
++ (NSDictionary *)dictionaryWithJsonString:(NSString *)jsonString {
+    if (jsonString == nil) {
+        return nil;
+    }
+    
+    NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
+    NSError *err;
+    NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:jsonData
+                                                        options:NSJSONReadingMutableContainers
+                                                          error:&err];
+    if(err) {
+        NSLog(@"json解析失败：%@",err);
+        return nil;
+    }
+    return dic;
+}
+
+#pragma 正则匹配手机号
++ (BOOL)checkTelNumber:(NSString *) telNumber
+{
+    //手机号正确,则返回 YES
+    NSString *pattern = @"^((13[0-9])|(17[0-9])|(147)|(15[^4,\\D])|(18[0-9]))\\d{8}$";
+    NSPredicate *pred = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", pattern];
+    BOOL isMatch = [pred evaluateWithObject:telNumber];
+    return isMatch;
+}
+
+
++(UIImageView *)initImageViewWithFrame:(CGRect)frame imageName:(NSString *)name{
+    UIImageView *imageView=[[UIImageView alloc] initWithFrame:frame];
+    imageView.image=[UIImage imageNamed:name];
+    return imageView;
+}
+
++(CGFloat)getImageHeightWithUrl:(NSString *)url withFrameWidth:(CGFloat)defineWidth{
+    UIImage *sourceImage=[UIImage sd_imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:url]]];
+    CGFloat height=defineWidth * sourceImage.size.height/sourceImage.size.width;
+    return height;
+    
+}
+@end
+

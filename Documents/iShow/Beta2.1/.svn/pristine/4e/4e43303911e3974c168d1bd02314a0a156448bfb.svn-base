@@ -1,0 +1,46 @@
+//
+//  MUCollectionViewFlowLayout.h
+//  瀑布流测试(CollectionView)
+//
+//  Created by LingVR on 16/5/17.
+//  Copyright © 2016年 mcq. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h>
+@class MUCollectionViewFlowLayout;
+FOUNDATION_EXTERN NSString * const CZCollectionElementKindSectionHeader;
+FOUNDATION_EXTERN NSString * const CZCollectionElementKindSectionFooter;
+
+
+
+@protocol MUCollectionViewFlowLayoutDelegate <UICollectionViewDelegate>
+
+@optional
+
+- (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout heightForItemAtIndexPath:(NSIndexPath *)indexPath;
+
+- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout referenceSizeForHeaderInSection:(NSInteger)section;
+
+- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout referenceSizeForFooterInSection:(NSInteger)section;
+//- (CGFloat)itemHeightLayOut:(MUCollectionViewFlowLayout *)layOut indexPath:(NSIndexPath *)indexPath;
+@end
+
+@interface MUCollectionViewFlowLayout : UICollectionViewLayout
+
+@property (assign, nonatomic, readonly) CGSize itemSize;
+
+/** default  2 */
+@property (assign, nonatomic) NSUInteger columnCount;
+
+/** default  10 */
+@property (assign, nonatomic) CGFloat minimumLineSpacing;
+
+/** default  10 */
+@property (assign, nonatomic) CGFloat minimumInteritemSpacing;
+
+/** default  UIEdgeInsetZero */
+@property (assign, nonatomic) UIEdgeInsets sectionInsets;
+
+//@property (nonatomic,strong ) id<MUCollectionViewFlowLayoutDelegate> delegate;
+@end

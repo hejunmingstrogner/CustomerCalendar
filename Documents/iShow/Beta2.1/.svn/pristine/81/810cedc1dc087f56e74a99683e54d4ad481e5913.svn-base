@@ -1,0 +1,61 @@
+//
+//  BaseCell.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/11/3.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "BaseCell.h"
+
+@implementation BaseCell
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    self.titleImageView.contentMode=UIViewContentModeScaleAspectFill;
+    self.headerImageView.contentMode=UIViewContentModeScaleAspectFill;
+    self.headerImageView.layer.masksToBounds=YES;
+    self.headerImageView.layer.cornerRadius=self.headerImageView.width/2.0;
+}
+
+-(instancetype)initWithFrame:(CGRect)frame{
+    if (self=[super initWithFrame:frame]) {
+        NSString *className=NSStringFromClass([self class]);
+        return [[[NSBundle mainBundle] loadNibNamed:className owner:nil options:nil] firstObject];
+    }
+    return self;
+}
+
+-(void)layoutSubviews{
+    [super layoutSubviews];
+}
+
+-(void)setModel:(ShareVideosInfoModel *)model{
+    _model=model;
+    
+    [self.titleImageView sd_setImageWithURL:[NSURL URLWithString:_model.share_image]];
+    
+   // [self.titleImageView sd_setImageWithURL:[NSURL URLWithString:_model.share_image] placeholderImage:[UIImage imageNamed:@"Failed_to_load"]];
+   // self.titleLabel.width=self.contentView.width;
+    self.titleLabel.text=model.share_name;
+    self.nameLabel.text = _model.user_nick_name?_model.user_nick_name:@"正在加载";
+    int zan_count=   [_model.video_zan_count intValue];
+    
+    self.upCountLabel.text = zan_count ?[NSString stringWithFormat:@"%d",zan_count]:@"0";
+    
+    [self.headerImageView sd_setImageWithURL:[NSURL URLWithString:_model.user_image]];
+}
+
+
+
+
+-(void)prepareForReuse{
+    self.titleImageView.image=nil;
+    self.titleLabel.text=nil;
+    self.headerImageView.image=nil;
+    self.upCountLabel.text=nil;
+    self.nameLabel.text=nil;
+    
+}
+
+@end

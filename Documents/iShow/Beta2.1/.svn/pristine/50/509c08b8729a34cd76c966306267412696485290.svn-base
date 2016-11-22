@@ -1,0 +1,35 @@
+/* 
+Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#ifndef __FACEORDER_H__
+#define __FACEORDER_H__
+
+#include <vector>
+
+typedef struct {
+    int mFrameNum;
+    int *mOrderArray;
+} orderInfo;
+
+class faceOrder {
+public:
+    faceOrder() : mNumOfFace(0), mListPosition(0) {};
+    ~faceOrder();
+    bool setOrderList(const char *file, int numOfFace);
+    bool getCurrentOrder(int frame, int* order);
+    // no need to use this method
+    //void setOffset(int frame);
+
+private:
+    int         mNumOfFace;
+    int         mListPosition;
+    std::vector<orderInfo*> mOrderList;
+    void        clearOrderList();
+    // debug
+    void        dumpOrderList();
+};
+
+
+#endif // __FACEODER_H__
+

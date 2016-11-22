@@ -1,0 +1,52 @@
+//
+//  DetailViewCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/18.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "CareFansInfoController.h"
+#import "UserDetailController.h"
+#import "ShareTopicsModel.h"
+#import <AVKit/AVKit.h>
+#import "CommentController.h"
+//配置视频播放器的player属性时,需要导入AVFoundation框架来构建对象
+#import <AVFoundation/AVFoundation.h>
+#import "ShareVideosInfoModel.h"
+@interface DetailViewCell : UITableViewCell<AlertContentViewYesButtonClickDelegate>
+
+{
+    AVPlayerViewController *_playerViewController;/**<  视频播放器 */
+}
+
+@property (weak, nonatomic) IBOutlet UIButton *playButton;
+@property (weak, nonatomic) IBOutlet UIImageView *headerImageView;
+@property (weak, nonatomic) IBOutlet UILabel *userNameLabel;
+@property (weak, nonatomic) IBOutlet UILabel *userTimeLabel;
+@property (weak, nonatomic) IBOutlet UILabel *userCountLabel;
+@property (weak, nonatomic) IBOutlet UIButton *attentionBut;
+@property (weak, nonatomic) IBOutlet UILabel *titleLabel;
+@property (weak, nonatomic) IBOutlet UIButton *commentBut;
+@property (weak, nonatomic) IBOutlet UIButton *upBut;
+@property (weak, nonatomic) IBOutlet UIView *videoView;
+@property (weak, nonatomic) IBOutlet UILabel *upLabel;
+@property (weak, nonatomic) IBOutlet UIButton *selfBut;
+@property (weak, nonatomic) IBOutlet UILabel *commentLabel;
+@property (nonatomic ,strong ) NSMutableArray *topicsArray;
+@property (weak, nonatomic) IBOutlet UIImageView *videoImage;
+@property (weak, nonatomic) IBOutlet UIView *topView;
+@property (weak, nonatomic) IBOutlet UIView *bottomView;
+//文字部分的遮挡view
+@property (weak, nonatomic) IBOutlet UIView *blackTopView;
+@property (weak, nonatomic) IBOutlet UIView *videoPlayerView;
+
+//视频以及下面部分的遮挡view
+@property (weak, nonatomic) IBOutlet UIView *blackBottomView;
+@property (nonatomic, strong) AlertUtils *utils;
+@property (nonatomic, strong) AlertView *alert;
+@property (nonatomic , strong) ShareVideosInfoModel *detailModel;
+
++ (DetailViewCell *)shareInstance;
+@end

@@ -1,0 +1,199 @@
+//
+//  SecoundViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/12.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "SecoundViewController.h"
+#import "RecommendViewControllrer.h"
+#import "DownloadViewController.h"
+#import "VipViewController.h"
+#import "TechnologyViewController.h"
+#import "InterestViewController.h"
+#import "GetShareCatsModel.h"
+#import "GetShareCatsRootModel.h"
+#import "SecoundChildBaseViewController.h"
+
+@interface SecoundViewController ()
+{
+    CGFloat _btnW;/**<  按钮的宽度 */
+    
+}
+@property (strong, nonatomic) NSMutableArray *dataSource;
+//@end
+//
+//@implementation FirstViewController
+@property (nonatomic, strong) UIView *indicatorView;
+/** 当前选中的按钮 */
+@property (nonatomic, strong) UIButton *selectedButton;
+/** 顶部的所有标签 */
+@property (nonatomic, strong) UIView *titlesView;
+//@property (nonatomic, strong) NSArray *titleArray;
+@property (strong, nonatomic) UIScrollView *topScrollView;
+@end
+
+@implementation SecoundViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor grayColor];
+    self.dataSource = [NSMutableArray array];
+    [self initializeUserSource];
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    UILabel *titleText = [[UILabel alloc] initWithFrame: CGRectMake(kScreenW/2.0-20, 0, 80, 88.0/kPictureH*kScreenH)];//allocate titleText
+    titleText.backgroundColor = [UIColor clearColor];
+    [titleText setText:@"主题"];
+    self.navigationItem.titleView=titleText;
+
+
+}
+//隐藏navigation 在将要加载的时候
+//- (void)viewWillAppear:(BOOL)animated {
+//    [super viewWillAppear:animated];
+//    self.navigationController.navigationBarHidden = YES;
+//}
+//
+//-(void)viewWillDisappear:(BOOL)animated{
+//    [super viewWillDisappear:animated];
+//    self.navigationController.navigationBarHidden=NO;
+//}
+- (void) initializeUserSource {
+    [[NetworkingHelper shareINstance] GET:@"Theme/getThemeCats" dict:nil succeedData:^(id data) {
+        GetShareCatsRootModel *rootModel = [[GetShareCatsRootModel alloc]initWithDictionary:data error:nil];
+        [_dataSource addObjectsFromArray:rootModel.list];
+//        NSLog(@"%@",data);
+        [self setupChildViewController];
+    } failure:^(NSError *error) {
+        NSLog(@"%@",error);
+    }];
+}
+- (void)setupChildViewController {
+    for (int i = 0; i <self.dataSource.count; i ++) {
+        SecoundChildBaseViewController *baseVC = [[SecoundChildBaseViewController alloc]init];
+        [self.viewControllers addObject:baseVC];
+    }
+    [self.view addSubview:self.switchBackgroundView];
+    [self setupTitlesView];
+//    [self setupSearchView];
+}
+/**
+ * 设置顶部的标签栏
+ */
+- (void)setupTitlesView
+{
+    CGFloat width = kScreenW / 5;
+    _btnW = width;
+    _topScrollView = [[UIScrollView alloc]initWithFrame:CGRectMake(0, 20+88*kDistanceWidthRatio , kScreenW, 68*kDistanceWidthRatio)];
+    [_topScrollView setShowsHorizontalScrollIndicator:NO];
+    _topScrollView.backgroundColor = [UIColor colorWithHexString:@"f8f8f8"];
+    self.topScrollView.contentSize = CGSizeMake(self.dataSource.count * width , 0);
+    [self.view addSubview:self.topScrollView];
+    self.titlesView = self.topScrollView;
+    
+    // 底部的红色指示器
+    UIView *indicatorView = [[UIView alloc] init];
+    indicatorView.backgroundColor = kColor(254, 27, 98);
+    indicatorView.height = 2.0*kDistanceHeightRatio;
+    indicatorView.tag = -1;
+    indicatorView.y = _titlesView.height - 12.0*kDistanceHeightRatio;
+    self.indicatorView = indicatorView;
+    // 内部的子标签
+    //    CGFloat width = titlesView.width / self.viewControllers.count;
+    CGFloat height = _titlesView.height;
+    for (NSInteger i = 0; i<self.dataSource.count; i++) {
+        UIButton *button = [[UIButton alloc] init];
+        button.tag = i;
+        button.height = height;
+        button.width = width;
+        button.y=0*kDistanceHeightRatio;
+        button.x = i * width;
+        GetShareCatsModel *model = self.dataSource[i];
+//        NSLog(@"%@",model.cat_name);
+        NSString *title = [NSString stringWithFormat:@"%@",model.cat_name];
+        [button setTitle:title forState:UIControlStateNormal];
+        [button setTitleColor:kColor(128, 128, 128) forState:UIControlStateNormal];
+        //        button.titleLabel.font = [UIFont systemFontOfSize:40];
+        [button setTitleColor:kColor(254, 27, 98) forState:UIControlStateDisabled];
+        button.titleLabel.font = [UIFont systemFontOfSize:15];
+        [button addTarget:self action:@selector(titleClick:) forControlEvents:UIControlEventTouchUpInside];
+        [_topScrollView addSubview:button];
+        // 默认点击了第一个按钮
+        if (i == 0) {
+            NSLog(@"  button    %ld",button.tag);
+            button.enabled = NO;
+            self.selectedButton = button;
+            // 让按钮内部的label根据文字内容来计算尺寸
+            [button.titleLabel sizeToFit];
+            self.indicatorView.width = button.titleLabel.width*1.5;
+            self.indicatorView.centerX = button.centerX;
+        }
+    }
+    [_titlesView addSubview:indicatorView];
+}
+#pragma  mark -- Events
+
+- (void)titleClick:(UIButton *)button
+{
+    [self buttonStateChange:button];
+    // 滚动
+    [self setShowingIndex:button.tag animate:YES];
+}
+
+- (void)buttonStateChange:(UIButton *)button
+{
+//    NSLog(@"      %ld",self.selectedButton.tag);
+    // 修改按钮状态
+    self.selectedButton.enabled = YES;
+    button.enabled = NO;
+    self.selectedButton = button;
+    //    [UIView animateWithDuration:0.25 animations:^{
+    //        self.indicatorView.width = button.titleLabel.width* 1.5;
+    //        self.indicatorView.centerX = button.centerX;
+    //    }];
+//    NSLog(@"      %ld",button.tag);
+    [UIView animateWithDuration:0.25 animations:^{
+        self.indicatorView.centerX = button.centerX;
+    }completion:^(BOOL finished) {
+        //获取按钮的下标
+        NSInteger idx = button.tag ;
+        //判断如果点击的按钮位于第二个到倒数第二个按钮之间,键按钮置于中间显示
+        if (idx >2 && idx <self.dataSource.count-2) {
+            //设置
+            [_topScrollView setContentOffset:CGPointMake((idx -2)*_btnW, 0) animated:YES];
+        }
+        //如果点击的是钱两个按钮
+        else if (idx >= 0 &&idx <=2){
+            [_topScrollView setContentOffset:CGPointMake(0, 0) animated:YES];
+        }
+        //如果点击的是后两个按钮
+        else if (idx >= self.dataSource.count-2){
+            [_topScrollView setContentOffset:CGPointMake((self.dataSource.count -5)*_btnW, 0) animated:YES];
+        }
+    }];
+}
+
+#pragma mark -SJSwitchViewControllerDelegate
+
+- (NSInteger)numberOfSwitchViewController
+{
+    return self.viewControllers.count;
+}
+
+- (UIViewController *)switchViewControllerDidGetViewControllerAtIndex:(NSUInteger)index
+{
+    SecoundChildBaseViewController *vc = self.viewControllers[index];
+    GetShareCatsModel *model = self.dataSource[index];
+    vc.cat_id = model.cat_id;
+    return vc;
+}
+
+-(void)switchViewControllerDidStopAtIndex:(NSInteger)index
+{
+    UIButton *button = self.titlesView.subviews[index + 1];
+    [self buttonStateChange:button];
+}
+
+@end
+

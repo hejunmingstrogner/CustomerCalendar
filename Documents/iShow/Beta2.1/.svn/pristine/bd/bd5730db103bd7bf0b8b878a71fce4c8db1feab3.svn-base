@@ -1,0 +1,23 @@
+//
+//  CommentHeaderView.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/18.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "ShareDetailModel.h"
+#import "ShareUpModel.h"
+//#import "ShareUpModel.h"
+//#import "ShareUp"
+typedef void (^ChangeHeight)();
+@interface CommentHeaderView : UIView
+@property (nonatomic,copy) ChangeHeight changeHeight;
+@property (copy, nonatomic) void (^(ChangeBlock)) (UIButton *button);
+@property (nonatomic,strong ) ShareDetailModel *model;
+@property (nonatomic,strong ) ShareUpModel *upModel;
+@property (nonatomic,strong )NSMutableArray *headerArray;
+@property (copy, nonatomic) void (^(headerBlock)) (UIButton *seader);
+@property (assign, nonatomic) NSInteger totalCount;
+@end

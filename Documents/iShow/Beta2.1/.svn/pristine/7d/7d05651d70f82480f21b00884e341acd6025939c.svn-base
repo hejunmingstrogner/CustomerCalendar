@@ -1,0 +1,223 @@
+//
+//  SettingController.m
+//  VideoProject
+//
+//  Created by storm on 16/9/9.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "SettingController.h"
+#import "SDImageCache.h"//计算缓存大小的
+#import "AlertUtils.h"
+#import "PickerView.h"
+#import "AlertView.h"
+#import "AlertUtils.h"
+#import "FeedBackViewController.h"
+#import "LoginViewController.h"
+#import "ZQTCustomSwitch.h"
+@interface SettingController ()<AlertContentViewYesButtonClickDelegate,CustomSwitchDelegate>
+
+@end
+
+@implementation SettingController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.title=@"我的";
+    [self initView];
+    [self initFrameView];
+}
+
+//pop回来的时候不会走viewDidLoad，但是会走viewWillAppear，所以要改变界面的东西写在这里
+-(void)viewWillAppear:(BOOL)animated{
+   
+    if ([userToken isEqualToString:@""]||userToken==nil) {
+        [self.loginOrQuitButton setTitle:@"立即登录" forState:UIControlStateNormal];
+    }else{
+        [self.loginOrQuitButton setTitle:@"退出当前账号" forState:UIControlStateNormal];
+    }
+}
+
+-(void)initFrameView{
+   
+  //  self.topView.y=CGRectGetMaxY(navigationView.frame)+28.0*kDistanceHeightRatio;
+    
+    self.loginOrQuitButton.y=CGRectGetMaxY(self.topView.frame)+90.0*kDistanceHeightRatio;
+}
+
+-(void)initView{
+    //缓存label
+    self.memoryLabel.text=[NSString stringWithFormat:@"%.1fMB",[self getCachesSize]];
+    //版本
+    NSDictionary *infoDictionary=[[NSBundle mainBundle] infoDictionary];
+    self.versionLabel.text=[NSString stringWithFormat:@"当前版本：V%@",infoDictionary[@"CFBundleShortVersionString"]];
+    
+
+    //根据token状态设置字体
+    if ([userToken isEqualToString:@""]|| userToken==nil) {
+        [self.loginOrQuitButton setTitle:@"立即登录" forState:UIControlStateNormal];
+    }else{
+        [self.loginOrQuitButton setTitle:@"退出当前账号" forState:UIControlStateNormal];
+    }
+    
+    ZQTCustomSwitch *Cswitch = [[ZQTCustomSwitch alloc] initWithFrame:CGRectMake(12, 0, 60, 22) onColor:kColor(182, 223, 192) offColor:kColor(244, 82, 141) font:[UIFont systemFontOfSize:10] ballSize:22];
+    Cswitch.onText = @"ON";
+    Cswitch.offText = @"OFF";
+    /**
+     *  on 等于  YES 为打开状态 ,
+     *           NO 为关闭状态
+     */
+    Cswitch.on = YES;
+    [Cswitch addTarget:self action:@selector(switchPressed:) forControlEvents:UIControlEventValueChanged];
+
+    [self.switchView addSubview:Cswitch];
+    
+}
+
+- (void)switchPressed:(ZQTCustomSwitch *)Cswitch
+{
+    
+    if (Cswitch.on) {
+        NSLog(@"switchPressed ON");
+    } else {
+        NSLog(@"switchPressed OFF");
+    }
+    
+}
+- (IBAction)languageButtonClick:(id)sender {
+    PickerView *pickerView=[[PickerView alloc] initWithFrame:CGRectMake(0, kScreenH-300.0*kDistanceHeightRatio, kScreenW, 300.0*kDistanceHeightRatio)];
+   
+    pickerView.dataArray=[NSMutableArray arrayWithObjects:@"简体中文",@"繁体中文",@"English", nil];
+    [pickerView initSubViews];
+    pickerView.valueDidSelect =^(NSString *language){
+       self.languageLabel.text=language;
+    };
+    [pickerView show];
+    
+}
+
+//清除缓存
+- (IBAction)clearMemoryButtonClick:(id)sender {
+    self.alertViewButtonType=1;//alertView的类型，清楚缓存
+    
+    AlertView *alert=[AlertView instanceAlertView];
+    alert.delegate=self;//点击Yes响应代理，清楚缓存
+    alert.layer.cornerRadius=20;
+    alert.describeLabel.text=@"是否清除缓存?";
+    AlertUtils *utils=[[AlertUtils alloc] init];
+    utils.contentView=alert;
+    [utils show];
+    [self initView];
+    
+    
+}
+
+//反馈
+- (IBAction)feedBackButtonClick:(id)sender {
+    FeedBackViewController *controller =[[FeedBackViewController alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+//关于
+- (IBAction)aboutButtonClick:(id)sender {
+    
+}
+
+- (IBAction)quitButtonClick:(id)sender {
+    
+    self.loginOrQuitButton=sender;
+    self.alertViewButtonType=0;//设定alertView的类型，是退出，还是清楚缓存
+    if ([self.loginOrQuitButton.titleLabel.text isEqualToString:@"退出当前账号"]) {
+        AlertView *alert=[AlertView instanceAlertView];
+        alert.delegate=self;//点击Yes响应代理，清楚缓存
+        alert.layer.cornerRadius=20;
+        alert.describeLabel.text=@"确定退出吗?";
+        AlertUtils *utils=[[AlertUtils alloc] init];
+        utils.contentView=alert;
+        [utils show];
+        
+       
+    }else{
+        LoginViewController *con=[[LoginViewController alloc] init];
+        
+        [self.navigationController pushViewController:con animated:YES];
+    }
+    
+    
+}
+
+
+
+//计算缓存大小
+-(double)getCachesSize{
+    //获取SD缓存大小
+    double sdSize=[[SDImageCache sharedImageCache] getSize];
+    //获取自定义的缓存地址
+    NSString *myCachePath=[NSHomeDirectory() stringByAppendingFormat:@"/Library/Caches/MyCaches"];
+    NSDirectoryEnumerator *enumerator=[[NSFileManager defaultManager] enumeratorAtPath:myCachePath];
+    double mySize=0;
+    for (NSString *fileName in enumerator) {
+        NSString *filePath=[myCachePath stringByAppendingPathComponent:fileName];
+        NSDictionary *dict=[[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:nil];
+        //统计大小
+        mySize += dict.fileSize;
+        
+    }
+    double totalSize=(mySize + sdSize)/1024/1024;
+    return totalSize;
+}
+
+//弹框的代理方法，将缓存清除
+-(void)alertContentYesButtonClick{
+    //0是退出   1是清除缓存
+    switch (self.alertViewButtonType) {
+        case 0:
+        {
+            saveUserToken(@"");
+            saveUserId(@"");
+            [self.navigationController popViewControllerAnimated:YES];
+        }
+            break;
+        case 1:
+        {
+            [[SDImageCache sharedImageCache] clearMemory];
+            [[SDImageCache sharedImageCache] clearDisk];
+            NSString *myCache=[NSHomeDirectory() stringByAppendingFormat:@"/Library/Caches/MyCaches"];
+            [[NSFileManager defaultManager] removeItemAtPath:myCache error:nil];
+            [self initView];
+        }
+            break;
+        default:
+            break;
+    }
+    
+   
+}
+
+//自定义switchView
+#pragma mark - customSwitch delegate
+-(void)customSwitchSetStatus:(CustomSwitchStatus)status
+{
+    switch (status) {
+        case CustomSwitchStatusOn:
+            [ConfigModel shareConfigModel].autoPlayVideo=AutomaticallyPlay;
+            break;
+        case CustomSwitchStatusOff:
+            [ConfigModel shareConfigModel].autoPlayVideo=NonAutomaticallyPlay;
+            break;
+        default:
+            break;
+    }
+}
+
+
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+
+
+
+@end

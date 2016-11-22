@@ -1,0 +1,13 @@
+//
+//  ImagePickerController.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/10/20.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface ImagePickerController : UIViewController
+
+@end

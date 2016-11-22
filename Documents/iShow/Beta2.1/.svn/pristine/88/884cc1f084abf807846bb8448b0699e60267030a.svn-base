@@ -1,0 +1,25 @@
+//
+//  VideoDetailCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface VideoDetailCell : UICollectionViewCell
+
+@property (weak, nonatomic) IBOutlet UIImageView *headImageView;
+@property (weak, nonatomic) IBOutlet UILabel *nameLabel;
+@property (weak, nonatomic) IBOutlet UILabel *timeLabel;
+@property (weak, nonatomic) IBOutlet UILabel *searchNumLabel;
+@property (weak, nonatomic) IBOutlet UIButton *careButton;
+@property (weak, nonatomic) IBOutlet UIView *videoView;
+@property (weak, nonatomic) IBOutlet UILabel *describeLabel;
+@property (weak, nonatomic) IBOutlet UIButton *shareButton;
+@property (weak, nonatomic) IBOutlet UILabel *shareLabel;
+
+//点击进入个人主页
+@property (weak, nonatomic) IBOutlet UIButton *personalButton;
+@end

@@ -1,0 +1,85 @@
+//
+//  BaseCellLayout.m
+//  CYCell
+//
+//  Created by storm on 16/11/14.
+//  Copyright © 2016年 strom. All rights reserved.
+//
+
+#import "BaseCellLayout.h"
+#import "YYImage.h"
+@implementation BaseCellLayout
+
+-(void)setTweet:(ShareVideosInfoModel *)tweet{
+    if (_tweet != tweet) {
+        _tweet=tweet;
+        [self layout];
+    }
+}
+-(CGFloat)getImageHeightWithUrl:(NSString *)url withFrameWidth:(CGFloat)defineWidth{
+    UIImage *sourceImage=[YYImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:_tweet.share_image]]];
+    CGFloat height=defineWidth * sourceImage.size.height/sourceImage.size.width;
+    return height;
+    
+}
+
+//设置各个部分的属性和总体高度
+-(void)layout{
+    [self reset];
+   
+    _bigImageViewTop=0;
+    _bigImageViewHeight=[self getImageHeightWithUrl:_tweet.share_image withFrameWidth:kScreenWidth];
+    _height += _bigImageViewHeight;
+    
+    
+    
+   
+    UIFont *nameSubFont=[UIFont systemFontOfSize:kT1UserNameSubFontSize];
+    NSMutableAttributedString *nameText=[[NSMutableAttributedString alloc] initWithString:_tweet.user_nick_name];
+    nameText.font=nameSubFont;
+    nameText.color=kColor(128, 128, 128);
+    nameText.alignment=NSTextAlignmentLeft;
+    _nameLableLayout=[YYTextLayout layoutWithContainerSize:CGSizeMake(kT1ContentWidth, 20) text:nameText];
+
+    
+    NSMutableAttributedString *favoriteCount=[[NSMutableAttributedString alloc] initWithString:_tweet.video_zan_count];
+    favoriteCount.font=nameSubFont;
+    favoriteCount.color=kColor(128, 128, 128);
+    favoriteCount.alignment=NSTextAlignmentLeft;
+    _favoriteLableLayout=[YYTextLayout layoutWithContainerSize:CGSizeMake(kT1ContentWidth, 20) text:favoriteCount];
+    
+    
+    YYTextContainer *textContainer=[YYTextContainer containerWithSize:CGSizeMake(kScreenWidth-5, CGFLOAT_MAX)];
+    textContainer.insets=UIEdgeInsetsMake(0, kT1TextContainerInset, 0, kT1TextContainerInset);
+    _textLayout=[YYTextLayout layoutWithContainer:textContainer text:[self textForTweet:_tweet]];
+    
+    _textTop = _bigImageViewHeight + 5;
+    _textHeight = CGRectGetMaxY(_textLayout.textBoundingRect);
+    
+    _headerTop=_textHeight+5;
+    _bottomViewHeight = 39;
+    
+    _height = _textHeight + _textTop;
+    _height += _bottomViewHeight;
+}
+
+//文本内容
+- (NSAttributedString *)textForTweet:(ShareVideosInfoModel *)tweet{
+    NSMutableAttributedString *text=[[NSMutableAttributedString alloc] initWithString:tweet.share_name];
+    text.font=[UIFont systemFontOfSize:kT1TextFontSize];
+    text.color=kColor(51, 51, 51);
+    return text;
+}
+
+-(void)reset{
+    _height = 0;
+    _bigImageViewTop = 0;
+    _bigImageViewHeight = 0;
+    _textTop = 0;
+    _textHeight = 0;
+    
+    _textLayout = nil;
+    _nameLableLayout = nil;
+    _favoriteLableLayout = nil;
+}
+@end

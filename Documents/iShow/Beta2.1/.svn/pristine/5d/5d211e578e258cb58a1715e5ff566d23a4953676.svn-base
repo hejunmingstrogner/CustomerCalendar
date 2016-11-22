@@ -1,0 +1,20 @@
+//
+//  LocaleViewController.m
+//  VideoProject
+//
+//  Created by once_CH on 16/9/5.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "LocaleViewController.h"
+
+@implementation LocaleViewController
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor redColor];
+    UILabel *label = [[UILabel alloc]initWithFrame:CGRectMake(100, 100, 100, 100)];
+    label.text = @"安抚asfas";
+    [self.view addSubview:label];
+    
+}
+@end

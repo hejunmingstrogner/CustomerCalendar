@@ -1,0 +1,13 @@
+//
+//  DownloadViewController.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/19.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "SecoundChildBaseViewController.h"
+
+@interface DownloadViewController : SecoundChildBaseViewController
+
+@end

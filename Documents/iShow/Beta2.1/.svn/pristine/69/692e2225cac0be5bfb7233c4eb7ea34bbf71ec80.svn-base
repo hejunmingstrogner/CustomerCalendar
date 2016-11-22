@@ -1,0 +1,260 @@
+//
+//  ScrollView.m
+//
+//
+//  Created by CX on 16/5/16.
+//  Copyright © 2016年 陈旭. All rights reserved.
+//
+
+#import "ScrollView.h"
+#import "BannerModel.h"
+#import "DetailViewController.h"
+#import "MakeViewController.h"
+
+#define SCREEN_W [UIScreen mainScreen].bounds.size.width
+//#define SCROLL_H 200
+//#define ScrollArray_Num self.modelArray.count
+@interface ScrollView ()<UIScrollViewDelegate>
+
+@property (nonatomic,strong) UIScrollView *scrollview;
+//@property (nonatomic,strong) NSArray *scrollArray;
+@property (nonatomic,strong) NSTimer *time;
+@property (nonatomic,strong) UIPageControl *pagecontrol;
+@property (nonatomic,strong) UILabel *titleLabel;
+@property (assign, nonatomic) NSInteger intCount;
+@end
+
+@implementation ScrollView
+
+- (instancetype)initWithFrame:(CGRect)frame
+{
+    self = [super initWithFrame:frame];
+    if (self) {
+//    [self addSubview:self.scrollview];
+//    [self addSubview:self.pagecontrol];
+    }
+    return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder
+{
+    self = [super initWithCoder:coder];
+    if (self) {
+            }
+    return self;
+}
+#pragma mark -- 添加滚动视图图片
+- (void)scrollViewClick:(UIButton *)seader {
+    NSInteger index = seader.tag - 100;
+    BannerModel *model = _modelArray[index];
+//    NSLog(@" arr  %ld",_modelArray.count);
+    if ([model.banner_type isEqualToString:@"share"]) {
+        DetailViewController2 *detail=[[DetailViewController2 alloc] init];
+     //   DetailViewController *detail = [[DetailViewController alloc]init];
+        detail.parameterUrl = @"Share/getShareVideosInfo";
+        detail.parameterDic = @{@"share_id":@([model.banner_link intValue])};
+        [[self viewController].navigationController pushViewController:detail animated:YES];
+    }
+    if ([model.banner_type isEqualToString:@"theme"]) {
+        MakeViewController *makeView = [[MakeViewController alloc]init];
+        makeView.theme_id = model.banner_link;
+        [[self viewController].navigationController pushViewController:makeView animated:YES];
+    }
+    if ([model.banner_type isEqualToString:@"topic"]) {
+//        FourthBaseColectionView *four = [[FourthBaseColectionView alloc]init];
+//        four.topic_id = model.banner_link;
+        
+    }
+    
+}
+//获取View所在的Viewcontroller方法
+- (UIViewController *)viewController {
+    for (UIView* next = [self superview]; next; next = next.superview) {
+        UIResponder *nextResponder = [next nextResponder];
+        if ([nextResponder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController *)nextResponder;
+        }
+    }
+    return nil;
+}
+
+-(void)addScrollviewPic{
+//    NSLog(@"%ld",_modelArray.count);
+    for (NSInteger index=0; index<_intCount; index++) {
+        BannerModel *model = _modelArray[index];
+        UIImageView *imageview = [[UIImageView alloc]init];
+        imageview.userInteractionEnabled = YES;
+        imageview.contentMode=UIViewContentModeScaleAspectFill;
+        imageview.clipsToBounds=YES;
+        imageview.frame = CGRectMake(SCREEN_W*index, 0, SCREEN_W,kScrollHeight);
+        [imageview sd_setImageWithURL:[NSURL URLWithString:model.banner_image] placeholderImage:[UIImage imageNamed:@"1.jpg"]];
+        _titleLabel = [[UILabel alloc]initWithFrame:CGRectMake(SCREEN_W*index + 10, self.height-24 - 20*kDistanceWidthRatio, self.width-20, 24)];
+        _titleLabel.font=[UIFont systemFontOfSize:12];
+        _titleLabel.text = model.banner_title;
+        _titleLabel.textColor = [UIColor whiteColor];
+//        UITapGestureRecognizer * tap=[[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(scrollViewClick)];
+        imageview.tag = 100 +index;
+        UIButton *butt = [UIButton buttonWithType:UIButtonTypeCustom];
+        butt.frame = self.frame;
+        butt.tag = 100 +index;
+        [butt addTarget:self action:@selector(scrollViewClick:) forControlEvents:UIControlEventTouchUpInside];
+        [imageview addSubview:butt];
+//        [imageview addGestureRecognizer:tap];
+        [self.scrollview addSubview:imageview];
+        
+        
+        UIImageView *blackView=[Utils initImageViewWithFrame:CGRectMake(SCREEN_W*index, self.height-40, self.width, 40) imageName:@"bottomView.png"];
+        [self.scrollview addSubview:blackView];
+        [self.scrollview addSubview:_titleLabel];
+//        [self.scrollview addSubview:but];
+    }
+    
+    //添加完图片后根据图片数量设置滚动范围
+    self.scrollview.contentSize = CGSizeMake(SCREEN_W*_modelArray.count, 0);
+    [self startTime];
+}
+
+
+#pragma mark -- 添加定时器
+
+//开启定时器
+-(void)startTime{
+    if (!self.time) {
+        self.time = [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(automstatTime) userInfo:nil repeats:YES];
+    }
+    
+}
+
+//关闭定时器
+-(void)stopTime{
+    [self.time invalidate];
+    self.time = nil;
+}
+
+//开启定时器调用方法
+-(void)automstatTime{
+    //获取当前偏移量
+    CGFloat offset = self.scrollview.contentOffset.x;
+    //增加一张图片后重新设置偏移量
+    CGFloat newoffset = offset + SCREEN_W;
+    [self.scrollview setContentOffset:CGPointMake(newoffset, 0) animated:YES];
+}
+
+#pragma mark -- 滚动视图的代理方法
+
+-(void)scrollViewDidScroll:(UIScrollView *)scrollView{
+    //获取当前偏移量
+    CGFloat offset = scrollView.contentOffset.x;
+    //计算当前图片所在位置
+    NSInteger page = offset/SCREEN_W +0.5;
+    self.pagecontrol.currentPage = page - 1;
+}
+
+//自动滚动时调用
+-(void)scrollViewDidEndScrollingAnimation:(UIScrollView *)scrollView{
+    [self scrollViewDidEndDecelerating:scrollView];
+    
+}
+
+//滚动停止时调用
+-(void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView{
+    
+    
+//    NSRunLoop*runLoop=[NSRunLoop currentRunLoop];
+//    [runLoop addTimer:self.time forMode:NSRunLoopCommonModes];
+    //获取停止时的偏移量
+    CGFloat offset = scrollView.contentOffset.x;
+    if (offset > SCREEN_W*(_intCount-2)) {
+        [scrollView setContentOffset:CGPointMake(SCREEN_W, 0)];
+    }
+    if (offset < SCREEN_W) {
+        [scrollView setContentOffset:CGPointMake(SCREEN_W*(_intCount-2), 0)];
+    }
+}
+
+//滚动视图拖动前
+-(void)scrollViewWillBeginDragging:(UIScrollView *)scrollView{
+    [self stopTime];
+    
+}
+
+//拖动结束
+-(void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate{
+    [self startTime];
+    
+}
+
+#pragma mark -- 懒加载
+
+-(UIScrollView *)scrollview{
+    if (!_scrollview) {
+        _scrollview = [[UIScrollView alloc]init];
+        _scrollview.frame = CGRectMake(0,0,SCREEN_W , self.frame.size.height);
+        //设置分页属性
+        _scrollview.pagingEnabled = YES;
+        _scrollview.userInteractionEnabled = YES;
+        //关闭弹簧效果
+        _scrollview.bounces = NO;
+        
+        //设置起始偏移量
+        _scrollview.contentOffset = CGPointMake(SCREEN_W, 0);
+        
+        //设置代理
+        _scrollview.delegate = self;
+    }
+    return _scrollview;
+    
+}
+
+
+-(UIPageControl *)pagecontrol{
+    if (!_pagecontrol) {
+        _pagecontrol = [[UIPageControl alloc]init];
+        _pagecontrol.frame = CGRectMake((SCREEN_W-100)/2, self.frame.size.height-10, 100, 7);
+//        _pagecontrol.backgroundColor = [UIColor redColor];
+        //设置分页控制器的个数
+        _pagecontrol.numberOfPages = _intCount- 2;
+//        NSLog(@"%ld",ScrollArray_Num);
+        //设置未选中的颜色
+        _pagecontrol.pageIndicatorTintColor = [UIColor colorWithHexString:@"#999999"];
+        //设置选中的颜色
+        _pagecontrol.currentPageIndicatorTintColor = [UIColor colorWithHexString:@"#fe1b62"];
+    }
+    
+    return _pagecontrol;
+}
+
+
+
+
+//响应方法在FirstBaseCollectionView里面
+-(void)leftButtonClick:(UIButton *)button{
+    if ([self.delegate respondsToSelector:@selector(clickLeftButton)]) {
+        [self.delegate clickLeftButton];
+    }
+}
+
+-(void)rightButtonClick:(UIButton *)button{
+    if ([self.delegate respondsToSelector:@selector(clickRightButton)]) {
+        [self.delegate clickRightButton];
+    }
+}
+- (void)setModelArray:(NSMutableArray *)modelArray {
+    [_modelArray removeAllObjects];
+    _modelArray = modelArray;
+    if (_modelArray.count > 0) {
+    [_modelArray addObject:_modelArray[0]];
+    [_modelArray insertObject:_modelArray[_modelArray.count-2] atIndex:0];
+    _intCount = _modelArray.count;
+    [self addScrollviewPic];
+    [self addSubview:self.scrollview];
+    [self addSubview:self.pagecontrol];
+
+    } else {
+        return;
+    }
+    
+}
+
+
+@end

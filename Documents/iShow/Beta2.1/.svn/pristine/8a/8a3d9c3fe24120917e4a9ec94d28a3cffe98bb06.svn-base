@@ -1,0 +1,41 @@
+//
+//  VideoTableViewCell.m
+//  VideoProject
+//
+//  Created by storm on 16/9/10.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "VideoTableViewCell.h"
+#import "UIImageView+WebCache.h"
+@implementation VideoTableViewCell
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    self.headerImageView.contentMode=UIViewContentModeScaleAspectFill;
+    self.headerImageView.clipsToBounds=YES;
+    self.headerImageView.layer.masksToBounds=YES;
+    
+    self.titleLabel.text=@"新学季，晒出花样校服";
+    self.describeLabel.text=@"在暑假结束后，你要说点什么呢";
+    self.playNumLabel.text=@"45.6万播放";
+    self.videoNumLabel.text=@"1385个视频";
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+    
+}
+
+-(void)initViewWithModel:(TopicModel *)model{
+    _model=model;
+    [self.headerImageView sd_setImageWithURL:[NSURL URLWithString:model.topic_image]];
+    self.titleLabel.text=[NSString stringWithFormat:@"# %@ #",model.topic_name];
+    self.describeLabel.text=model.topic_brief;
+    self.playNumLabel.text=[NSString stringWithFormat:@"%0.1f播放",model.topic_play_count.floatValue];
+    self.videoNumLabel.text=[NSString stringWithFormat:@"%0.1f个视频",model.topic_video_count.floatValue];
+    
+}
+
+@end

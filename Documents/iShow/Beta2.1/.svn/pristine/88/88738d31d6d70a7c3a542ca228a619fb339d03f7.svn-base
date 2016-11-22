@@ -1,0 +1,28 @@
+/*
+ Copyright(C) 2011-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#ifndef __OVLYTEXTURE_H__
+#define __OVLYTEXTURE_H__
+
+#include <map>
+#include <string>
+#include "pugixml.hpp"
+#include "MpMovieTypes.h"
+
+class ovlyTexture
+{
+public:
+    //ovlyTexture(const char* plistName);
+    ~ovlyTexture();
+    bool setOverlayList(const char* plistName);
+    bool getTextureRect(const char* key, mpMovieRect* src, mpMovieRect *dst);
+private:
+    pugi::xml_document mDoc;
+    std::map<std::string, pugi::xml_node> mDict;
+    static const unsigned int sFindFrame;
+    static const unsigned int sFindColor;
+    
+};
+
+#endif // __OVLYTEXTURE_H__

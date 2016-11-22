@@ -1,0 +1,13 @@
+//
+//  MineInfoViewController.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/22.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface MineInfoViewController : UIViewController
+
+@end

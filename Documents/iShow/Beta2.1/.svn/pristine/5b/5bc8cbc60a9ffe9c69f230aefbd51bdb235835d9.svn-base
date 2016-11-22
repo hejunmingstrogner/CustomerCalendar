@@ -1,0 +1,29 @@
+//
+//  ThemeListModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/22.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <JSONModel/JSONModel.h>
+
+@protocol ThemeListModel <NSObject>
+
+@end
+
+@interface ThemeListModel : JSONModel
+@property (nonatomic,strong ) NSString <Optional> *theme_name;
+@property (nonatomic,strong ) NSString <Optional> *theme_image;
+@property (nonatomic,strong ) NSString <Optional> *theme_brief;
+@property (nonatomic,strong ) NSString <Optional> *theme_download_url;
+@property (nonatomic,strong ) NSString <Optional> *theme_video_url;
+@property (nonatomic,strong ) NSString <Optional> *user_nick_name;
+@property (nonatomic,strong ) NSString <Optional> *user_image;
+
+@property (nonatomic,strong ) NSString <Optional> *theme_id;
+@property (nonatomic,strong ) NSString <Optional> *theme_create_count;
+@property (nonatomic,strong ) NSString <Optional> *user_id;
+@property (nonatomic,strong) NSString <Optional> *theme_uptime;
+//@property (nonatomic,strong) NSArray <Optional> *ThemeList;
+@end

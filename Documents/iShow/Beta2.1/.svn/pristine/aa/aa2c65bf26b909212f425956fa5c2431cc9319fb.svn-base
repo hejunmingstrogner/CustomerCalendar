@@ -1,0 +1,24 @@
+//
+//  SingleButtonAlertView.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/11/9.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "SingleButtonAlertView.h"
+#import "AlertUtils.h"
+@implementation SingleButtonAlertView
+
++(instancetype)instanceAlertView{
+    NSArray *array=[[NSBundle mainBundle] loadNibNamed:@"SingleButtonAlertView" owner:self options:nil];
+    return [array objectAtIndex:0];
+}
+
+- (IBAction)yesButtonClick:(id)sender {
+    AlertUtils *utils=(AlertUtils *)self.superview;
+    [utils hide];
+    
+}
+
+@end

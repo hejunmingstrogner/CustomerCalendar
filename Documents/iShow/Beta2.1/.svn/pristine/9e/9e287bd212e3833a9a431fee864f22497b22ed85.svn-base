@@ -1,0 +1,115 @@
+//
+//  ChangeHeaderController.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "ChangeHeaderController.h"
+#import "BasicNavigationController.h"
+@interface ChangeHeaderController ()<UIImagePickerControllerDelegate,UINavigationControllerDelegate>
+@property (weak, nonatomic) IBOutlet UIImageView *headerImage;
+@property (strong, nonatomic)  UIButton *photographBut;
+@property (strong, nonatomic)  UIButton *leadBut;
+@property (weak, nonatomic) IBOutlet UIButton *changeBut;
+@property (nonatomic,strong) UIImagePickerController *picker;
+@end
+
+@implementation ChangeHeaderController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view from its nib.
+    //    修改navigation的颜色
+    [self.navigationController.navigationBar setBackgroundImage:[UIImage new] forBarMetrics:5];
+    self.navigationController.navigationBar.shadowImage = [UIImage new];
+    
+    
+    _photographBut = [UIButton buttonWithType:UIButtonTypeCustom];
+    _photographBut.frame = CGRectMake(10, kScreenH-160, (kScreenW-50)/2.f, 34);
+    [_photographBut setImage:[UIImage imageNamed:@"camera"] forState:UIControlStateNormal];
+    [_photographBut setTitle:@"拍照" forState:UIControlStateNormal];
+    _photographBut.titleEdgeInsets = UIEdgeInsetsMake(0, 20, 0, 0);
+    [_photographBut setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    _photographBut.clipsToBounds = YES;
+    _photographBut.layer.cornerRadius = 5;
+    _photographBut.backgroundColor = kColor(30, 30, 30);
+    [self.view addSubview:_photographBut];
+    
+    
+    
+    _leadBut = [UIButton buttonWithType:UIButtonTypeCustom];
+    _leadBut.frame = CGRectMake(40 +(kScreenW-50)/2.f , kScreenH - 160, (kScreenW-50)/2.f, 34);
+    [_leadBut setImage:[UIImage imageNamed:@"picture"] forState:UIControlStateNormal];
+    [_leadBut setTitle:@"导入" forState:UIControlStateNormal];
+    _leadBut.titleEdgeInsets = UIEdgeInsetsMake(0, 20, 0, 0);
+    [_leadBut setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    _leadBut.clipsToBounds = YES;
+    _leadBut.layer.cornerRadius = 5;
+    _leadBut.backgroundColor = kColor(30, 30, 30);
+    [_leadBut addTarget:self action:@selector(action_changeHeader) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_leadBut];
+    
+    _headerImage.clipsToBounds = YES;
+    _headerImage.layer.cornerRadius = _headerImage.frame.size.height/2.5f;
+    
+    _changeBut.clipsToBounds = YES;
+    _changeBut.layer.cornerRadius = 5;
+    
+    
+//将image绘制成椭圆
+    UIImage * srcImg =[UIImage imageNamed:@"1.jpg"];
+    CGFloat width = srcImg.size.width;
+    CGFloat height = srcImg.size.height;
+    //开始绘制图片
+    UIGraphicsBeginImageContext(srcImg.size);
+    CGContextRef gc = UIGraphicsGetCurrentContext();
+    ////绘制Clip区域
+    CGContextAddEllipseInRect(gc, CGRectMake(0, 0,width*1.1, height*0.9)); //椭圆
+    CGContextClosePath(gc);
+    CGContextClip(gc);
+    //坐标系转换
+    //因为CGContextDrawImage会使用Quartz内的以左下角为(0,0)的坐标系
+    CGContextTranslateCTM(gc, 0, height);
+    CGContextScaleCTM(gc, 1, -1);
+    CGContextDrawImage(gc, CGRectMake(0, 0, width, height), [srcImg CGImage]);
+    //结束绘画
+    UIImage *destImg = UIGraphicsGetImageFromCurrentImageContext();
+    
+    UIGraphicsEndImageContext();
+    [_headerImage setImage:destImg];
+}
+
+
+#pragma mark - UIImagePickerControllerDelegate
+-(void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary<NSString *,id> *)info {
+    [picker dismissViewControllerAnimated:YES completion:nil];
+    UIImage *image = info[UIImagePickerControllerOriginalImage];
+    self.headerImage.image = image;
+}
+
+
+
+#pragma mark -- Events
+
+- (void)action_changeHeader {
+    [self presentViewController:self.picker animated:YES completion:nil];
+}
+
+- (IBAction)NextHeader:(UIButton *)sender {
+
+    [self.navigationController popoverPresentationController];
+}
+#pragma mark -- Getter
+-(UIImagePickerController *)picker {
+    if (!_picker) {
+        _picker = [[UIImagePickerController alloc]init];
+        _picker.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
+        _picker.delegate = self;
+    }
+    return _picker;
+}
+
+
+@end

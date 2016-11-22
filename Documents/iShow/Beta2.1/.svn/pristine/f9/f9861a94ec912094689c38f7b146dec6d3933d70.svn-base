@@ -1,0 +1,32 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+class MpSoundPlayer;
+
+class MpSoundPlayerDelegate
+{
+public:
+    virtual void playFinished(){};
+};
+
+class MpSoundPlayer
+{
+public:
+    MpSoundPlayer();
+    ~MpSoundPlayer();
+
+    void setDataSource(const char* file);
+    void prepare();
+    void play();
+    void pause();
+    void stop();
+    void setOffset(int msec);
+    void release();
+    void soundPlayerDidFinished(bool flag);
+    
+private:
+    void* mPlayerObj;
+    void* mDelegate;
+    int   mOffset;
+};

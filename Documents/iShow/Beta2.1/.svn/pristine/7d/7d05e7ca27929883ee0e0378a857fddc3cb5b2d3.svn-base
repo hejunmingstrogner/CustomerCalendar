@@ -1,0 +1,55 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#ifndef FACEAREA_H_
+#define FACEAREA_H_
+
+typedef struct {
+    float x, y, z;
+} _Vec3;
+
+typedef struct {
+    float x, y;
+} _Vec2;
+
+#define MASK_R (1.0)
+#define MASK_G (1.0)
+#define MASK_B (1.0)
+#define MASK_A (0.9)
+
+class faceArea {
+
+  public:
+    faceArea();
+    ~faceArea();
+    bool setFaceImage(int w, int h, unsigned char *rgb);
+    bool setFaceMask(int w, int h, unsigned char *rgba);
+    bool setItemImage(int w, int h, unsigned char *rgba);
+    void setMaskColor(float r, float g, float b, float a);
+    void transfromFaceImage(float tx, float ty, float scale, float rotate);
+    unsigned char *getFinalImage();
+
+  private:
+    GLuint generateTexture(int w, int h, unsigned char *img, GLenum format);
+    void drawFaceImage(float transx, float transy, float scale, float rotate);
+    void drawOverLay(GLuint tex, int w, int h, bool mask);
+    bool flipScanlineOrder(unsigned char *buf, int w, int h, int channel);
+    
+  private:
+    float transX_, transY_, scale_, rotate_;
+    float faceXScale_, faceYScale_;
+    int faceW_, faceH_;
+    GLuint faceTex_;
+    
+    float maskR_, maskG_, maskB_, maskA_;
+    int maskW_, maskH_;
+    unsigned char *maskImg_;
+    GLuint maskTex_;
+    
+    int itemW_, itemH_;
+    unsigned char *itemImg_;
+    GLuint itemTex_;
+};
+
+#endif  // FACEAREA_H_

@@ -1,0 +1,24 @@
+//
+//  ZCYInterestViewController.m
+//  VideoProject
+//
+//  Created by once_CH on 16/9/6.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "ZCYInterestViewController.h"
+
+
+@interface ZCYInterestViewController ()
+
+@end
+
+@implementation ZCYInterestViewController
+- (void)viewDidLoad {
+    [super viewDidLoad];
+   
+    
+}
+
+
+@end

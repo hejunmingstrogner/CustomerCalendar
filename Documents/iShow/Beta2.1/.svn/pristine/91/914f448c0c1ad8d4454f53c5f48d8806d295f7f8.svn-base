@@ -1,0 +1,22 @@
+//
+//  EditUserInfoViewController.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/20.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface EditUserInfoViewController : UIViewController
+@property (weak, nonatomic) IBOutlet UIImageView *headImageView;
+@property (weak, nonatomic) IBOutlet UIButton *headEditButton;
+@property (weak, nonatomic) IBOutlet UITextField *nameTextField;
+@property (weak, nonatomic) IBOutlet UIButton *maleButton;
+@property (weak, nonatomic) IBOutlet UIButton *femaleButton;
+@property (weak, nonatomic) IBOutlet UILabel *adressLabel;
+@property (weak, nonatomic) IBOutlet UIButton *adressEditButton;
+@property (weak, nonatomic) IBOutlet UITextView *PersonalSignTextView;
+@property (weak, nonatomic) IBOutlet UILabel *placeHolderLabel;
+
+@end

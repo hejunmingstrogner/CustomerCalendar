@@ -1,0 +1,13 @@
+//
+//  ShareUpModel.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/27.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "ShareUpModel.h"
+
+@implementation ShareUpModel
+
+@end

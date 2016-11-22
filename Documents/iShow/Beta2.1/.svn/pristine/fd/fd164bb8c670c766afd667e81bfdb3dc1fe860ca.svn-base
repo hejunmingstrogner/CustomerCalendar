@@ -1,0 +1,775 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#import <GLKit/GLKit.h>
+#import "editMovieController.h"
+#import "imageUtil.h"
+#import "imagePick.h"
+#import "MpMovieIf.h"
+#import "mpface.h"
+#import "converView.h"
+#import "previewControllerViewController.h"
+
+#define Width   (self.view.frame.size.width)
+#define Height  (self.view.frame.size.height)
+
+@interface editMovieController ()<MpMovieIfDelegate , converViewDelegate>
+
+
+
+@property (strong, nonatomic) EAGLContext *context;
+@property (strong, nonatomic) MpMovieIf    * movieif;
+@property (strong, nonatomic) NSMutableArray * facearrays;      //  数组
+@property (strong, nonatomic) UIButton     * beforbutton;       //  前一个按钮
+@property (strong, nonatomic) UIButton     * selbutton;         //  选中按钮
+@property (strong, nonatomic) NSMutableArray * buttonArray;     //
+//@property ()
+//@property (nonatomic) int index;                                //  表示上一个按钮的索引
+@property (nonatomic) id delegate;
+@property (nonatomic) UIImage *mask;
+@property (nonatomic) UIImage *decoration;
+
+
+
+@end
+
+@implementation editMovieController {
+ 
+    
+    GLKView *viewGL_;
+    UIImageView * bgiv;
+    UIImageView * headiv;
+    UIImageView * decoiv;
+    //    BOOL          isTouch;
+    imagePick *   picker;
+    UIImage   *   composeimage[10];  // 合成人脸数组
+    CGAffineTransform  transformes[10]; // 偏移数组
+    UIView    *   renderView;        // 渲染view
+    NSTimer   *   timerobj;
+    
+    
+    CGSize       bgsize;
+    CGSize       tempsize;
+    
+    UIImage   *   faceimg;
+    UIImage   *   templateimg;
+    
+    converView * conver;
+    
+    int num;
+    
+    
+    float transX_, transY_;
+    float scale_;
+    float rotate_ ;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    [self createUI];
+    
+}
+-(void)createUI{
+    
+    CGSize size = CGSizeMake(Width, Width);
+    
+    bgsize      = size;
+    
+    
+    UIButton * nextStep = [UIButton buttonWithType:UIButtonTypeCustom];
+    [nextStep setTitle:@"下一步" forState:UIControlStateNormal];
+    [nextStep setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+    [nextStep setTitleColor:[UIColor blackColor] forState:UIControlStateHighlighted];
+    nextStep.titleLabel.font = [UIFont systemFontOfSize:15];
+    [nextStep addTarget:self action:@selector(nextStep) forControlEvents:UIControlEventTouchUpInside];
+    nextStep.adjustsImageWhenHighlighted = NO;
+    [nextStep sizeToFit];
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:nextStep];
+    
+    bgiv   =  [[UIImageView alloc] initWithFrame:CGRectMake((Width - size.width) / 2, self.navigationController.navigationBar.frame.size.height + (Height  / 2 - size.height) / 2, size.width, size.height)];
+    bgiv.userInteractionEnabled = true;
+    [self.view addSubview:bgiv];
+    
+    UIImage * img = [UIImage imageWithContentsOfFile:[_content stringByAppendingFormat:@"/face0/facebg"]];
+    
+    size          = bgsize;
+    size          =  [self getsize:img withsize:size];
+    tempsize      =  size;
+    
+    headiv = [[UIImageView alloc] initWithFrame:CGRectMake((Width - size.width) / 2, self.navigationController.navigationBar.frame.size.height + (Height  / 2 - size.height) / 2, size.width, size.height)];
+    headiv.userInteractionEnabled = true;
+    headiv.image = img;
+    [self.view addSubview:headiv];
+    
+    decoiv = [[UIImageView alloc] initWithFrame:headiv.frame];
+    decoiv.userInteractionEnabled = true;
+    decoiv.image = [UIImage imageWithContentsOfFile:[_content stringByAppendingString:@"/face0/facedeco"]];
+    
+    
+    UITapGestureRecognizer * tap;
+    tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
+    [decoiv addGestureRecognizer:tap];
+    
+    
+    UIPanGestureRecognizer *pan;
+    pan = [[UIPanGestureRecognizer alloc]
+           initWithTarget:self action:@selector(handlePan:)];
+    [decoiv addGestureRecognizer:pan];
+    
+    
+    UIPinchGestureRecognizer *pinch;
+    pinch = [[UIPinchGestureRecognizer alloc]
+             initWithTarget:self action:@selector(handlePinch:)];
+    [decoiv addGestureRecognizer:pinch];
+    
+    UIRotationGestureRecognizer *rotate;
+    rotate = [[UIRotationGestureRecognizer alloc]
+              initWithTarget:self action:@selector(handleRotate:)];
+    [decoiv addGestureRecognizer:rotate];
+    
+    
+   
+    
+    [self.view addSubview:decoiv];
+    
+    
+    // 遮盖
+    UIView * conver2 = [[UIView alloc] initWithFrame:CGRectMake(0, CGRectGetMaxY(headiv.frame), Width, Height / 2)];
+    conver2.backgroundColor = [UIColor blackColor];
+    [self.view addSubview:conver2];
+    
+    // 添加人数按钮
+    // 人脸的数量
+    
+    NSString * path = [[NSBundle mainBundle] bundlePath];
+
+    
+    motionportrait::MpMovie * movie = new motionportrait::MpMovie([path UTF8String]);
+    
+    movie->SetMovieData([_content UTF8String]);
+    
+    movie->GetIntParam(motionportrait::MpMovie::kNumOfFaces, &num);
+    
+    
+    CGFloat item_width = 40;
+    CGFloat item_height = 40;
+    
+    
+    
+    for (int i = 0 ; i < num; i ++) {
+        
+        UIButton * button = [[UIButton alloc] initWithFrame:CGRectMake((item_width + 10) * i + 10, conver2.frame.origin.y + 10, item_width, item_height)];
+        
+        UIImage  * bgimage = [UIImage imageWithContentsOfFile:[_content stringByAppendingFormat:@"/face%d/icon",i]];
+        
+        
+        if (i == 0) {
+            
+            templateimg = bgimage;
+            self.selbutton = button;
+            self.beforbutton = button;
+            button.layer.borderColor = [UIColor redColor].CGColor;
+            button.layer.borderWidth = 1.0;
+            
+        }
+        
+        button.backgroundColor = [UIColor whiteColor];
+        [button setBackgroundImage:bgimage forState:UIControlStateNormal];
+        
+        button.tag = i;
+        
+        [button addTarget:self action:@selector(peoplefacebutton:) forControlEvents:UIControlEventTouchUpInside];
+        
+        [self.view addSubview:button];
+        
+    }
+    
+    
+    // 历史头像
+    
+    UILabel * hisLabel = [[UILabel alloc] initWithFrame:CGRectMake(10,conver2.frame.origin.y + 10 + item_width + 10, 100 , item_height / 2)];
+    hisLabel.font      = [UIFont systemFontOfSize:14.0];
+    hisLabel.textColor = [UIColor whiteColor];
+    hisLabel.text      = @"历史头像";
+    
+    [self.view addSubview:hisLabel];
+    
+    NSArray * heads = [self getHead];
+    
+    self.buttonArray = [NSMutableArray array];
+    
+    for (int i = 0; i < heads.count; i ++) {
+        
+        UIButton * button = [[UIButton alloc] initWithFrame:CGRectMake((item_width + 10) * i + 10, CGRectGetMaxY(hisLabel.frame) + 10, item_width, item_height)];
+        button.tag = i;
+        
+        [button addTarget:self action:@selector(hisButton:) forControlEvents:UIControlEventTouchUpInside];
+        
+        UIImage * image = [UIImage imageWithData:heads[i]];
+        
+        [button setBackgroundImage:image forState:UIControlStateNormal];
+        
+        [self.buttonArray addObject:button];
+        
+        [self.view addSubview:button];
+    }
+
+    
+    self.facearrays = [NSMutableArray array];
+    
+    
+    renderView = [[UIView alloc] initWithFrame:self.view.bounds];
+    renderView.hidden = true;
+    
+    [self.view addSubview:renderView];
+    
+    self.movieif = [[MpMovieIf alloc] InitWithResourcePath:path];
+    [self.movieif SetRenderTarget:renderView];
+    [self.movieif SetWorkArea:NSTemporaryDirectory()];
+    [self.movieif SetMovieData:_content];
+    self.movieif.delegate = self;
+    
+    
+    scale_ = 1.0;
+    
+    
+}
+
+// 重新设置位置
+-(void)layoutimage{
+    
+    
+    CGAffineTransform transform  = CGAffineTransformMakeScale(scale_, scale_);
+    CGAffineTransform tf2        = CGAffineTransformRotate(transform, rotate_);
+    CGAffineTransform tf1        = CGAffineTransformTranslate(tf2, transX_, transY_);
+    
+    int index                    = (int)self.selbutton.tag;
+    transformes[index]           = tf1;
+    bgiv.transform                = tf1;
+    
+    
+    if (num == 1 && faceimg) {
+        
+        [self composeface:faceimg withtag:0];
+        
+        
+    }
+    
+}
+
+// 人数按钮响应事件
+-(void)peoplefacebutton:(UIButton *)button{
+    
+    
+    if (button == self.selbutton) {
+        
+        return;
+    }
+    
+    self.selbutton.layer.borderWidth = 0.0;
+    button.layer.borderWidth = 1.0;
+    button.layer.borderColor = [UIColor redColor].CGColor;
+    
+    self.beforbutton = self.selbutton;
+    self.selbutton = button;
+    
+    
+    UIImage  * bgimage = [UIImage imageWithContentsOfFile:[_content stringByAppendingFormat:@"/face%d/facebg",(int)button.tag]];
+    
+    headiv.image = bgimage;
+    
+    UIImage * decoimage = [UIImage imageWithContentsOfFile:[_content stringByAppendingFormat:@"/face%d/facedeco",(int)button.tag]];
+    
+    decoiv.image = decoimage;
+    
+    CGSize  size       = [self getsize:bgimage withsize:bgsize];
+    
+    headiv.frame       = CGRectMake((Width - size.width) / 2, (Height / 2 - size.height) / 2 + self.navigationController.navigationBar.frame.size.height, size.width, size.height);
+    
+    templateimg        = bgimage;
+    
+    
+    
+    int index = (int)self.beforbutton.tag;
+    
+    
+    if (faceimg) {
+        
+        [self composeface:faceimg withtag:index];
+        faceimg = nil;
+    }
+    
+    index = (int)self.selbutton.tag;
+    
+    UIImage * image = composeimage[index];
+    
+    if (image) {
+        
+        CGAffineTransform transform = transformes[index];
+        
+        bgiv.transform              = transform;
+        bgiv.image  = image;
+        
+ 
+        
+    }else{
+        
+        bgiv.transform = CGAffineTransformIdentity;
+        bgiv.image  = nil;
+    }
+    
+    transX_ = 0;
+    transY_ = 0;
+    scale_  = 1;
+    rotate_ = 0;
+    
+}
+// 历史头像按钮
+-(void)hisButton:(UIButton *)button{
+    
+    UIImage * bgimage = [button backgroundImageForState:UIControlStateNormal];
+    
+    CGSize  size       = [self getsize:bgimage withsize:bgsize];
+    
+    bgiv.frame       = CGRectMake((Width - size.width) / 2, (Height / 2 - size.height) / 2 + self.navigationController.navigationBar.frame.size.height, size.width, size.height);
+    
+    faceimg          = bgimage;
+    
+    self.beforbutton = self.selbutton;
+    bgiv.image       = bgimage;
+    
+    int index = (int)self.selbutton.tag;
+    
+    composeimage[index] = faceimg;
+    
+    
+    if (faceimg) {
+        
+        [self composeface:faceimg withtag:index];
+        
+        faceimg = nil;
+    }
+    
+    
+    
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)handleTap:(UITapGestureRecognizer *)recognizer{
+    
+    UIAlertController * controller =  [UIAlertController alertControllerWithTitle:@"请选择照片" message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+    
+    UIAlertAction     * camera     =  [UIAlertAction actionWithTitle:@"相机" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action){
+        
+        [self pushselpicture:1];
+        
+    }];
+    UIAlertAction     * libiary    =  [UIAlertAction actionWithTitle:@"相册" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action){
+        
+        [self pushselpicture:2];
+    }];
+    
+    UIAlertAction     * cancel     = [UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:^(UIAlertAction * action){}];
+    
+    [controller addAction:camera];
+    [controller addAction:libiary];
+    [controller addAction:cancel];
+    [self presentViewController:controller animated:true completion:nil];
+}
+-(void)pushselpicture:(int)method{
+    
+    picker = [[imagePick alloc] init];
+    picker.delegate    = (id)self;
+    
+    [picker pickImage:(method == 1) ? true : false view:self overlay:nil];
+    
+}
+- (void)imagePickDone:(UIImage *)image {
+    
+    picker = nil;
+    
+    faceimg      = image;
+    
+    
+    //  存储图片
+    int index = (int)self.selbutton.tag;
+    
+    composeimage[index] = faceimg;
+    
+    CGSize  size = [self getsize:image withsize:bgsize];
+    
+    bgiv.frame   = CGRectMake((Width - size.width) / 2, (Height  / 2 - size.height) / 2 + self.navigationController.navigationBar.frame.size.height, size.width, size.height);
+    
+    
+    bgiv.image   = image;
+
+    for (int i = 0; i < self.buttonArray.count; i ++) {
+        
+        [self.buttonArray[i] removeFromSuperview];
+    }
+    
+    [self.buttonArray removeAllObjects];
+    
+    [self saveHead:image];
+    
+    NSArray * heads = [self getHead];
+    
+    
+    self.buttonArray = [NSMutableArray array];
+    
+    for (int i = 0; i < heads.count; i ++) {
+        
+        UIButton * button = [[UIButton alloc] initWithFrame:CGRectMake((40 + 10) * i + 10, CGRectGetMaxY(headiv.frame) + 90, 40, 40)];
+        button.tag = i;
+        
+        [button addTarget:self action:@selector(hisButton:) forControlEvents:UIControlEventTouchUpInside];
+        
+        UIImage * image = [UIImage imageWithData:heads[i]];
+        
+        [button setBackgroundImage:image forState:UIControlStateNormal];
+        
+        [self.buttonArray addObject:button];
+        
+        [self.view addSubview:button];
+        
+    }
+    
+    
+}
+//
+// gesture call backs
+//
+- (IBAction)handlePan:(UIPanGestureRecognizer *)recognizer {
+    CGPoint translation = [recognizer translationInView:self.view];
+    //    float scale = [UIScreen mainScreen].scale;
+    
+    transX_ += translation.x;
+    transY_ += translation.y;
+    
+    
+    [recognizer setTranslation:CGPointMake(0, 0) inView:self.view];
+    
+    [self layoutimage];
+    
+}
+
+- (IBAction)handlePinch:(UIPinchGestureRecognizer *)recognizer {
+    scale_ *= recognizer.scale;
+    
+    recognizer.scale = 1;
+    
+    
+    [self layoutimage];
+    
+    NSLog(@"handlePinch:");
+}
+
+- (IBAction)handleRotate:(UIRotationGestureRecognizer *)recognizer {
+    
+    rotate_ += recognizer.rotation;
+    recognizer.rotation = 0;
+    
+    [self layoutimage];
+    
+    NSLog(@"handleRotate:");
+}
+static void bufferFree(void *info, const void *data, size_t size) {
+    free((void *)data);
+}
+//  合成人脸
+-(void)composeface:(UIImage *)image withtag:(int)tag{
+    
+    CGSize size = image.size;
+    CGSize bgSize = bgiv.frame.size;
+
+    
+    CGRect eachRect = CGRectMake( headiv.frame.origin.x - bgiv.frame.origin.x , headiv.frame.origin.y - bgiv.frame.origin.y,headiv.frame.size.width,headiv.frame.size.height);
+  
+    
+    CGRect headRect = CGRectMake(eachRect.origin.x / bgSize.width * size.width, eachRect.origin.y / bgSize.height * size.height, eachRect.size.width / bgSize.width * size.width , eachRect.size.height / bgSize.height * size.height);
+    
+    CGImageRef imgRef = CGImageCreateWithImageInRect(image.CGImage, headRect);
+    
+    UIImage * headImg = [UIImage imageWithCGImage:imgRef];
+
+
+    
+    
+    [self.movieif GenerateFace:tag img:headImg];
+    
+    
+}
+// 回调方法
+- (void)GenerateFaceFinished:(MpMovieResult)ret faceData:(MpMovie::FaceData *)faceData {
+    
+    
+    if(ret == 0){
+        
+        
+        int index = (int)self.beforbutton.tag;
+        [self deleteFace:index];
+        
+        [self.facearrays addObject:[NSValue valueWithPointer:faceData]];
+        
+        
+    }
+}
+// 删除多余人脸
+- (void)deleteFace:(int)number {
+    int n = (int)self.facearrays.count;
+    
+    for(int i=0; i<n; ++i){
+        MpMovie::FaceData *data = (MpMovie::FaceData*)[[self.facearrays objectAtIndex:i] pointerValue];
+        if(data->mIndex == number) {
+            
+            [self.movieif FreeFaceData:data];
+            [self.facearrays removeObjectAtIndex:i];
+            
+            break;
+        }
+    }
+}
+
+//// 截取人脸方法
+//- (UIImage *)getAvatarImage:(MpMovie::FaceData *)faceData {
+//    motionportrait::mpFaceObject face = faceData->mFaceObj;
+//    motionportrait::MpFace::FaceImage image;
+//    motionportrait::MpFace::GetThumbnail(face, image);
+//    UIImage *img = [imageUtil getUIImageFromRGB:image.w_ height:image.h_ bytePerRow:3*image.w_ rgb:image.rgb_];
+//    
+//    if (num == 1)   return img;
+//    
+//    
+//    UIImage *mask = templateimg;
+//    
+//    if(mask)
+//        img = [imageUtil maskImage:img mask:mask];
+//    
+////    UIImage  * deco = [UIImage imageWithContentsOfFile:[_content stringByAppendingFormat:@"/face%d/facedeco",(int)self.selbutton.tag]];
+////    
+////    if(deco)
+////        img = [imageUtil compositeImage:img overlay:deco];
+//    
+//    return img;
+//}
+
+
+// 合成视频
+-(void)composevideo{
+    
+    
+    [self prepareVideo];
+    NSString *video = [NSTemporaryDirectory() stringByAppendingString:@"video.mp4"];
+    [self.movieif SetIntParam:MpMovie::kMode intArg:MpMovie::kGenerateMovie];
+    [self.movieif SetStringParam:MpMovie::kOutputMedia strArg:video];
+    [self.movieif SetIntParam:MpMovie::kCallbackInterval intArg:300]; // get interval in each 300ms
+    
+    [self.movieif Prepare];
+    
+    [self.movieif Play];
+    
+    
+    
+}
+// 适配
+-(CGSize)getsize:(UIImage *)img withsize:(CGSize)size{
+    
+    CGSize resultSize;
+    
+    CGSize imgSize = img.size;
+    
+    
+    if (imgSize.width / imgSize.height > size.width / size.height) {
+        
+        
+        resultSize = CGSizeMake(size.width, imgSize.height / imgSize.width * size.width);
+        
+    }else{
+        
+        resultSize = CGSizeMake(imgSize.width / imgSize.height * size.height, size.height);
+    }
+    
+    
+    return resultSize;
+}
+
+- (void)prepareVideo {
+    
+    [self.movieif ClearData];
+    
+    [self.movieif SetMovieData:_content];
+    
+    NSLog(@"preparevideo");
+    int count = (int)self.facearrays.count;
+    unsigned int index = 0;
+    
+    NSLog(@"facearray.count: %d",count);
+    
+    for(int i = 0; i < count; i++){
+        MpMovie::FaceData *data = (MpMovie::FaceData*)[[self.facearrays objectAtIndex:i] pointerValue];
+        [self.movieif SetFaceData:data];
+        index |= 1 << data->mIndex;
+        
+        NSLog(@"index: %d",index);
+    }
+    
+//    if (num != 1) {
+//        
+//        for(int i = 0; i < num; i++){
+//            if(!(index & (1 << i))){
+//                // no data is set
+//                [self.movieif ClearFaceData:i];
+//                
+//                MpMovie::FaceData *faceData = new MpMovie::FaceData();
+//                //                NSString *path = nil;
+//                //                NSString *resTop = [[NSBundle mainBundle] bundlePath];
+//                //                if(i == (num - 1)){
+//                //                    path = [resTop stringByAppendingString:@"/face_pink.bin"];
+//                //                }else{
+//                //                    path = [resTop stringByAppendingFormat:@"/face_blue.bin"];
+//                //                }
+//                faceData->mIsOneTime = true;    // hoge
+//                //                faceData->SetFacePath([path UTF8String]);
+//                faceData->mUseDefaultExp = true;
+//                [self.movieif SetFaceData:i faceData:faceData];
+//                
+//                NSLog(@"setFaceData:%d",i);
+//                
+//            }
+//        }
+//        
+//        
+//        
+//    }
+    
+}
+- (void)NotifyCurrentPosition:(int)msec {
+    
+    int duration = 0;
+    [self.movieif GetIntParam:MpMovie::kDuration intArg:&duration];
+    
+    
+    conver.progress = (CGFloat)msec / duration;
+}
+- (void)GenerateMovieFinished:(int)status {
+
+    
+    if(status == 0) {
+        
+        
+        NSString *video = [NSTemporaryDirectory() stringByAppendingString:@"video.mp4"];
+        
+        NSLog(@"videopath: %@",video);
+        //            [pgvc createdonewithpath:video];
+        
+        
+        previewControllerViewController * vc = [[previewControllerViewController alloc] init];
+        vc.videoPath                         = video;
+        
+        [self.navigationController pushViewController:vc animated:true];
+//        [self presentViewController:vc animated:true completion:nil];
+        
+        [conver removeFromSuperview];
+        
+        
+    }
+}
+-(void)saveHead:(UIImage *)image{
+    
+    
+    NSFileManager * fm = [NSFileManager defaultManager];
+    
+    NSString      * path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true)[0] stringByAppendingString:@"/head.plist"];
+    
+    if (![fm fileExistsAtPath:path]) {
+        
+        [fm createFileAtPath:path contents:nil attributes:nil];
+    }
+    
+    NSArray * heads =  [NSArray arrayWithContentsOfFile:path];
+    
+    NSMutableArray * temp = [NSMutableArray arrayWithArray:heads];
+    
+    
+    
+    
+    
+    NSData * headData = UIImageJPEGRepresentation(image, 1);
+    
+    
+    BOOL isContain = false;
+    
+    for (NSData * data in temp) {
+        
+        if ([headData isEqualToData:data]) {
+            
+            isContain = true;
+        }
+        
+    }
+    
+    if (isContain) {
+        
+        return;
+    }else{
+        
+        [temp insertObject:headData atIndex:0];
+    }
+    
+    
+    
+    
+    
+    if (temp.count >= 6) {
+        
+        [temp removeLastObject];
+    }
+    
+    
+    
+    heads = [NSArray arrayWithArray:temp];
+    
+    
+    [heads writeToFile:path atomically:true];
+    
+    
+}
+-(NSArray *)getHead{
+    
+    NSFileManager * fm = [NSFileManager defaultManager];
+    
+    NSString      * path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true)[0] stringByAppendingString:@"/head.plist"];
+    
+    if (![fm fileExistsAtPath:path]) {
+        
+        [fm createFileAtPath:path contents:nil attributes:nil];
+    }
+    
+    NSArray * head = [NSArray arrayWithContentsOfFile:path];
+    
+    return head;
+}
+-(void)converViewyesButton:(converView *)conview{
+    
+    if ([self.movieif Stop] == kSuccess) {
+        
+        [conver removeFromSuperview];
+    }
+
+}
+//  下一步合成视频
+-(void)nextStep{
+    
+    
+    [self composevideo];
+    
+    conver = [converView  createConterViewobj:self];
+ 
+}
+@end

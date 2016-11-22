@@ -1,0 +1,349 @@
+//
+//  EditUserInfoViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/20.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "EditUserInfoViewController.h"
+#import "AdressPickerView.h"
+#import "PickerView.h"
+#import "UploadFile.h"
+#import "AFNetworkTool.h"
+@interface EditUserInfoViewController ()<UITextViewDelegate,UITextFieldDelegate,UIImagePickerControllerDelegate>
+@property (nonatomic, strong) UserModel *userModel;
+
+@end
+
+@implementation EditUserInfoViewController
+
+
+
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    //当显示用户自己的个人信息时，需要加rightItemButton，否则不加
+    if (![[ConfigModel shareConfigModel].user_id isEqual:myUserId]) {
+        self.view.userInteractionEnabled=NO;
+        
+    }else{
+        [self addRightItemButton];
+    }
+    self.view.backgroundColor=kColor(242, 242, 242);
+    [self initData];
+
+}
+
+-(void)initData{
+    [[ConfigModel shareConfigModel] showRotationView];
+    NSDictionary *dict=@{@"user_id":[ConfigModel shareConfigModel].user_id};
+    [[NetworkingHelper shareINstance] GET:@"User/getUserInfo" dict:dict succeedData:^(id data) {
+        if (data) {
+            self.userModel=[[UserModel alloc] initWithDictionary:data error:nil];
+            [self initView];
+            [[ConfigModel shareConfigModel].alertUtils hide];
+        }
+    } failure:^(NSError *error) {
+        [[ConfigModel shareConfigModel].alertUtils hide];
+    }];
+}
+//自定义tabBar
+-(void)initView{
+    CGRect headerImageFrame=self.headImageView.frame;
+    headerImageFrame.size.height=headerImageFrame.size.width;
+    self.headImageView.frame=headerImageFrame;
+    self.headImageView.layer.cornerRadius=self.headImageView.frame.size.width/2.0;
+    self.headImageView.layer.masksToBounds=YES;
+    
+    [self.headImageView sd_setImageWithURL:[NSURL URLWithString:self.userModel.user_image]];
+    
+    self.nameTextField.text=self.userModel.user_nick_name;
+    self.adressLabel.text=self.userModel.user_location;
+    if ([self.userModel.user_signature isEqualToString:@""]) {
+        self.PersonalSignTextView.text=@"这位网友很懒，什么也没说";
+        self.placeHolderLabel.hidden=YES;
+        
+    }else{
+        self.PersonalSignTextView.text=[NSString stringWithFormat:@"%@",self.userModel.user_signature];
+        self.placeHolderLabel.hidden=YES;
+    }
+    if (self.userModel.user_gender.integerValue==1) {
+        self.maleButton.selected=YES;
+    }else{
+        self.femaleButton.selected=YES;
+    }
+    
+    
+}
+
+-(void)addRightItemButton{
+    UIButton *rightEditButton=[Utils initButtonWithFrame:CGRectMake(0, 0, 40, 40) normalImage:nil selectImage:nil title:@"完成"];
+    [rightEditButton addTarget:self action:@selector(editFinished:) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem *item=[[UIBarButtonItem alloc] initWithCustomView:rightEditButton];
+    self.navigationItem.rightBarButtonItem=item;
+    self.PersonalSignTextView.delegate=self;
+}
+//提交个人信息
+-(void)editFinished:(id)sender{
+    [[ConfigModel shareConfigModel] showRotationView];
+   //  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),^{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),^{
+        NSMutableDictionary *dict=[[NSMutableDictionary alloc] init];
+        if (self.nameTextField.text.length!=0) {
+            [dict setValue:self.nameTextField.text forKey:@"user_nick_name"];
+        }
+        if (self.adressLabel.text.length!=0) {
+            [dict setValue:self.adressLabel.text forKey:@"user_location"];
+        }
+        if (self.PersonalSignTextView.text.length!=0) {
+            [dict setValue:self.PersonalSignTextView.text forKey:@"user_signature"];
+        }
+        
+        if (self.maleButton.selected==YES) {
+            [dict setObject:@"1" forKey:@"user_gender"];
+        }else{
+            [dict setObject:@"2" forKey:@"user_gender"];
+        }
+        
+        
+        
+        NSData *imagedata=UIImageJPEGRepresentation(self.headImageView.image, 0.5);
+        [AFNetworkTool upLoadToUrlImageString:kBaseUrl(@"User/saveUser") parameters:dict fileData:imagedata name:@"file" fileName:@"头像1.png" mimeType:@"image/jpeg" progress:^(NSProgress *progress) {
+            
+        } success:^(NSURLSessionDataTask *task, id success) {
+            if (success) {
+                [[ConfigModel shareConfigModel].alertUtils hide];
+                NSNumber *state=success[@"state"];
+                if (state.integerValue==1) {
+                    [ConfigModel shareConfigModel].userModel=[[UserModel alloc] initWithDictionary:success[@"values"] error:nil];
+                    NSLog(@"%@",[ConfigModel shareConfigModel].userModel);
+                }else{
+                    
+                    NSInteger errorCode = [[success objectForKey:@"errno"] integerValue];
+                    [self errorMessageWithErrorCode:errorCode];
+                }
+            }
+        } failure:^(NSURLSessionDataTask *task, NSError *error) {
+             [[ConfigModel shareConfigModel].alertUtils hide];
+        }];
+
+    });
+    
+   // [self postImage];
+    
+    
+}
+
+-(void)errorMessageWithErrorCode:(NSInteger )errorCode{
+    
+    AlertView *alert=[AlertView instanceAlertView];
+    NSString *error=[ErrorCodeUtils getErrorTitleWithErrorCode:errorCode];
+    alert.describeLabel.text=[ErrorCodeUtils getErrorTitleWithErrorCode:errorCode];
+    alert.layer.cornerRadius=20;
+    AlertUtils *utils=[[AlertUtils alloc] init];
+    utils.contentView=alert;
+    [utils show];
+    
+    
+}
+
+
+
+-(void)reloadUserStaticsWithData:(NSDictionary *)data{
+//    [[NetworkingHelper shareINstance] GET:@"User/getUserStatistics" dict:nil succeedData:^(id data) {
+//        NSLog(@"%@",data);
+//        if (data) {
+    
+            UserModel *userModel=[[UserModel alloc] init];
+            userModel.fans_count=data[@"fans_count"];
+            userModel.follow_count=data[@"follow_count"];
+            userModel.is_follow=data[@"is_follow"];
+            userModel.message_count=data[@"message_count"];
+            userModel.user_id=data[@"user_id"];
+            userModel.user_image=data[@"user_image"];
+            userModel.user_nick_name=data[@"user_nick_name"];
+            userModel.vdieo_total_count=data[@"vdieo_total_count"];
+            userModel.video_count=data[@"video_count"];
+            userModel.zan_video_count=data[@"video_count"];
+            [ConfigModel shareConfigModel].userModel=userModel;
+    
+//        }
+//    } failure:^(NSError *error) {
+//        
+//    }];
+}
+-(void)postImage{
+    
+    
+    UploadFile *upload=[[UploadFile alloc] init];
+    NSData *imagedata=UIImageJPEGRepresentation(self.headImageView.image, 0.5);
+    [upload uploadFileWithURL:[NSURL URLWithString:kBaseUrl(@"User/uploadAvatar")] data:imagedata];
+}
+
+#pragma mark-UITextFieldDelegate
+- (BOOL)textFieldShouldReturn:(UITextField *)textField{
+    [self.nameTextField resignFirstResponder];
+    return YES;
+}
+
+
+#pragma mark - UITextViewDelegate
+-(void)textViewDidChange:(UITextView *)textView{
+//    if ([textView.text isEqualToString:@"个性签名："]) {
+//      //  self.PersonalSignTextView.text=@"个性签名：你想说些什么...";
+//    }
+}
+
+
+
+
+- (void)textViewDidBeginEditing:(UITextView *)textView
+
+{
+    
+    float offset = 0.0f;
+    
+    if(self.PersonalSignTextView == textView)
+        
+    {
+        self.placeHolderLabel.hidden=YES;
+        //如果offset>0,说明textView把键盘遮挡住了
+        // CGFloat y=textView.frame.origin.y;
+        offset = textView.frame.origin.y+202.0/568.0*kScreenH-(kScreenH-216/568.0*kScreenH-35);
+        
+    }
+    
+    NSTimeInterval animationDuration = 0.30f;
+    
+    [UIView beginAnimations:@"ResizeForKeyBoard"context:nil];
+    
+    [UIView setAnimationDuration:animationDuration];
+    
+    float width = self.view.frame.size.width;
+    
+    float height = self.view.frame.size.height;
+    if(offset>0){
+        CGRect rect = CGRectMake(0.0f, -offset , width, height);
+        
+        self.view.frame = rect;
+        
+        [UIView  commitAnimations];
+        
+    }
+}
+
+- (void)textViewDidEndEditing:(UITextView *)textView
+
+{
+    
+    if ([textView.text isEqualToString:@""]) {
+        self.placeHolderLabel.hidden=NO;
+    }
+    float offset = 0.0f;
+    NSTimeInterval animationDuration = 0.30f;
+    
+    [UIView beginAnimations:@"ResizeForKeyBoard"context:nil];
+    
+    [UIView setAnimationDuration:animationDuration];
+    
+    float width = self.view.frame.size.width;
+    
+    float height = self.view.frame.size.height;
+    
+    CGRect rect = CGRectMake(0.0f, offset , width, height);
+    
+    self.view.frame = rect;
+    
+    [UIView commitAnimations];
+    
+}
+
+
+-(void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
+    [self.view endEditing:YES];
+    if ([self.PersonalSignTextView.text isEqualToString:@""]) {
+        self.placeHolderLabel.hidden=NO;
+    }
+}
+- (IBAction)adressSelectButtonClick:(id)sender {
+    AdressPickerView *adress=[[AdressPickerView alloc] initWithFrame:self.view.bounds selectCityTitle:@""];
+    [adress showCityView:^(NSString *proviceStr, NSString *cityStr) {
+        self.adressLabel.text=[NSString stringWithFormat:@"%@ %@",proviceStr,cityStr];
+    }];
+}
+
+- (IBAction)maleButtonClick:(id)sender {
+    self.maleButton.selected=!self.maleButton.selected;
+    if (self.maleButton.selected==YES && self.femaleButton.selected==YES) {
+        self.femaleButton.selected=!self.femaleButton.selected;
+    }
+}
+
+- (IBAction)femaleButtonClick:(id)sender {
+    self.femaleButton.selected=!self.femaleButton.selected;
+    if (self.maleButton.selected==YES && self.femaleButton.selected==YES) {
+        self.maleButton.selected=!self.maleButton.selected;
+    }
+}
+
+- (IBAction)editHeadImageButtonClick:(id)sender {
+    PickerView *pickerView=[[PickerView alloc] initWithFrame:CGRectMake(75.0/kPictureW*kScreenW,522.0/kPictureH*kScreenH,  600.0/kPictureW*kScreenW,293.0/kPictureH*kScreenH)];
+    pickerView.type=@"image";
+    pickerView.dataArray=[NSMutableArray arrayWithObjects:@"用户相册",@"拍照",@"取消", nil];
+    [pickerView initSubViews];
+    pickerView.valueDidSelect=^(NSString *value){
+        [self editPhotoImageWithValue:value];
+    };
+    [pickerView show];
+}
+
+-(void)editPhotoImageWithValue:(NSString *)value{
+    UIImagePickerController *pickerController=[[UIImagePickerController alloc] init];
+    pickerController.allowsEditing=YES;
+    pickerController.delegate=self;
+    
+    
+    if ([value isEqualToString:@"用户相册"]) {
+         pickerController.sourceType=UIImagePickerControllerSourceTypePhotoLibrary;
+        [self presentViewController:pickerController animated:YES completion:^{
+            NSLog(@"取消");
+        }];
+    }
+    if ([value isEqualToString:@"拍照"]) {
+       pickerController.sourceType=UIImagePickerControllerSourceTypeCamera;
+        [self presentViewController:pickerController animated:YES completion:^{
+            NSLog(@"取消");
+        }];
+    }
+    if ([value isEqualToString:@"取消"]) {
+        
+    }
+    
+}
+
+-(void)imagePickerControllerDidCancel:(UIImagePickerController *)picker{
+    [picker dismissViewControllerAnimated:YES completion:^{
+        NSLog(@"取消");
+    }];
+}
+
+-(void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary<NSString *,id> *)info{
+    UIImage *image=info[UIImagePickerControllerEditedImage];
+    self.headImageView.image=image;
+    
+    
+    [picker dismissViewControllerAnimated:YES completion:^{
+        NSLog(@"选照片");
+        
+        
+    }];
+}
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+
+@end

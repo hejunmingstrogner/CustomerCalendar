@@ -1,0 +1,121 @@
+//
+//  CareFansInfoCell.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/18.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "CareFansInfoCell.h"
+#define kPicCellHeight 172.0
+@implementation CareFansInfoCell
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    self.headerImageView.frame=CGRectMake(20.0/kPictureW*self.contentView.frame.size.width, 18.0/kPicCellHeight*self.contentView.frame.size.height, 120.0/kPicCellHeight*self.contentView.frame.size.height, 120.0/kPicCellHeight*self.contentView.frame.size.height);
+    CGRect frame=self.headerImageView.frame;
+    self.headerImageView.layer.cornerRadius=self.headerImageView.frame.size.width/2.0;
+//    
+    self.headerImageView.layer.masksToBounds=YES;//必须加这句话才会有圆角
+}
+
+
+-(void)initViewWithUserModel:(UserModel *)model{
+    _userModel=model;
+    self.nameLabel.text=model.user_nick_name;
+  //  self.describeLabel.text=@"nihaonihao你好nihaonihao你好nihaonihao你好nihaonihao你好nihaonihao你好nihaonihao你好";
+    self.describeLabel.text=model.user_signature;
+    SDWebImageManager *manager=[SDWebImageManager sharedManager];
+    if(model.is_follow.integerValue==1){//已关注
+        
+        //[self.careButton setImage:[UIImage imageNamed:@"Already-concerned.png"] forState:UIControlStateNormal];
+       // [self.careButton setTitle:@"已关注" forState:UIControlStateNormal];
+        
+    }else{
+        //未关注
+        self.careButton.selected=YES;
+       // [self.careButton setImage:[UIImage imageNamed:@"guanzhu.png"] forState:UIControlStateNormal];
+        //[self.careButton setTitle:@"未关注" forState:UIControlStateNormal];
+    }
+    [manager downloadImageWithURL:[NSURL URLWithString:model.user_image] options:0 progress:^(NSInteger receivedSize, NSInteger expectedSize) {
+        
+    } completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, BOOL finished, NSURL *imageURL) {
+        self.headerImageView.image=image;
+        if (image==nil) {
+            self.headerImageView.image=[UIImage imageNamed:@"1.jpg"];
+        }
+    }];
+//    [self.imageView sd_setImageWithURL:[NSURL URLWithString:model.user_image] placeholderImage:[UIImage imageNamed:@"1.jpg"]];
+//    self.imageView.clipsToBounds = YES;
+//    [self.imageView sd_setImageWithURL:[NSURL URLWithString:model.user_image]];
+}
+- (IBAction)careButtonClick:(id)sender {
+   
+    self.alert=[AlertView instanceAlertView];
+    self.alert.delegate=self;
+    self.alert.layer.cornerRadius=20;
+    self.utils=[[AlertUtils alloc] init];
+    self.utils.contentView=self.alert;
+    if (self.careButton.selected==YES) {
+        self.alert.describeLabel.text=@"确定关注此人?";
+        [self.utils show];
+    }else{
+        self.alert.describeLabel.text=@"确定不再关注此人?";
+        [self.utils show];
+    }
+   
+    
+}
+
+//这里处理数据，如果选择YES,才会处理数据
+-(void)alertContentYesButtonClick{
+    
+   NSDictionary *dict=@{@"follow_id":self.userModel.user_id};
+    
+    if (self.careButton.selected==YES) {
+       self.alert.describeLabel.text=@"确定关注此人?";
+        [[NetworkingHelper shareINstance] GET:@"User/followUser" dict:dict succeedData:^(id data) {
+            if ([data isEqualToString:@"操作成功"]) {
+                self.careButton.selected=!self.careButton.selected;
+               
+            }
+        } failure:^(NSError *error) {
+            
+        }];
+
+    }else{
+        self.alert.describeLabel.text=@"确定不再关注此人?";
+        
+        [[NetworkingHelper shareINstance] GET:@"User/cancelFollowUser" dict:dict succeedData:^(id data) {
+            if ([data isEqualToString:@"操作成功"]) {
+                self.careButton.selected=!self.careButton.selected;
+            }
+        } failure:^(NSError *error) {
+            
+        }];
+    }
+}
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+    
+}
+
+
+-(void)layoutSubviews{
+    [super layoutSubviews];
+//    CGRect imageViewFrame=self.headerImageView.frame;
+//    imageViewFrame.size.width=imageViewFrame.size.height;
+//    self.headerImageView.frame=imageViewFrame;
+    [self.lineView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.left.equalTo(self.nameLabel);
+
+        make.right.equalTo(self).offset(0);
+        make.height.equalTo(@1);
+        make.bottom.equalTo(self).offset(-1);
+    }];
+    
+    
+}
+
+@end

@@ -1,0 +1,22 @@
+//
+//  YXVideoKitTool.h
+//  MPTVideoKit
+//
+//  Created by Simon on 15/4/15.
+//  Copyright (c) 2015年 Xuan Yi Xia CO.LTD. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+static NSString * const kYXVideoKitBundleName = @"YXVideoKitBundle";
+
+@interface YXVideoKitTool : NSObject
+
++ (NSString*)getFileFromSDKBundle:(NSString*)fileName;
+
++ (BOOL) isValidNSArray:(id)object;
++ (BOOL) isValidNSDictionary:(id)object;
+
++ (BOOL) validateVideoPath:(NSString*)videoPath;
+
+@end

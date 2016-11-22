@@ -1,0 +1,15 @@
+//
+//  ThemeDetailRootModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/24.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <JSONModel/JSONModel.h>
+#import "ThemeDetailModel.h"
+
+@interface ThemeDetailRootModel : JSONModel
+
+@property (nonatomic,strong) NSArray <Optional,ThemeDetailModel> *list;
+@end

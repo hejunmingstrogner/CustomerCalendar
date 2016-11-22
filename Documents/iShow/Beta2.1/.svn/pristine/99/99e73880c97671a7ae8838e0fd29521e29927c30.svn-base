@@ -1,0 +1,13 @@
+//
+//  BannerRootModel.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/10/6.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "BannerRootModel.h"
+
+@implementation BannerRootModel
+
+@end

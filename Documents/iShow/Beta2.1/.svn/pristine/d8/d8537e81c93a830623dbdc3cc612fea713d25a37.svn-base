@@ -1,0 +1,13 @@
+//
+//  UploadFile.h
+//  VideoProject_0.1Beta
+//
+//  Created by 徐琦 on 16/10/6.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface UploadFile : NSObject
+- (void)uploadFileWithURL:(NSURL *)url data:(NSData *)data;
+@end

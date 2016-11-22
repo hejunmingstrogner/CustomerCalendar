@@ -1,0 +1,76 @@
+/*
+ *
+ * Copyright 2013-2014 by MotionPortrait, Inc.
+ *
+ * All rights reserved.
+ *
+ */
+
+#ifndef MPCOSME_H_
+#define MPCOSME_H_
+
+#include "mptypes.h"
+
+namespace motionportrait {
+
+
+class MpCosmeImpl;
+class MpFace;
+
+/**
+ * \class MpCosme
+ *
+ * MpCosme class controls load/unload/set/unset cosme item
+ */
+class MpCosme {
+
+  public:
+
+    typedef void* CosmeId;
+
+    /**
+     * create cosme.
+     *
+     * @param pathCosme : path to cosme file
+     * @return cosme id
+     */
+    CosmeId Create(const char *pathCosme);
+
+    /**
+     * destroy cosme.
+     *
+     * @param id : cosme id to be destroyed
+     */
+    mpResult Destroy(CosmeId id);
+
+    /**
+     * bind item to face
+     * must be called from GL thread
+     *
+     * @param face  : face instance which cosme is bound
+     * @param id    : cosme id to be bound
+     * @param color : cosme color
+     */
+    mpResult SetCosme(MpFace &face, CosmeId id, mpColor *color = NULL);
+
+    /**
+     * unbind all items from face
+     * must be called from GL thread
+     *
+     * @param face : face instance which cosme is bound
+     */
+    mpResult UnsetCosme(MpFace &face);
+
+    /**
+     */
+    MpCosme();
+    virtual ~MpCosme();
+
+    MpCosmeImpl *mp_;
+
+};
+
+
+} // namespace motionportrait
+
+#endif /* MPCOSME_H_ */

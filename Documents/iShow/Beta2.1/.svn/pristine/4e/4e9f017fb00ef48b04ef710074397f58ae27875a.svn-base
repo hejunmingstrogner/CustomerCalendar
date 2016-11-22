@@ -1,0 +1,13 @@
+//
+//  AttentionViewController.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/21.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "FirstBaseViewController.h"
+
+@interface AttentionViewController : FirstBaseViewController
+
+@end

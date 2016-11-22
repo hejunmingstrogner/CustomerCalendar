@@ -1,0 +1,14 @@
+//
+//  SearchCollectionView.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/10/12.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface SearchCollectionView : UIView
+@property (strong, nonatomic) NSString *share_id;
+@property (strong, nonatomic) NSString *keyword;
+@end

@@ -1,0 +1,350 @@
+//
+//  EffectsViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/10/27.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "EffectsViewController.h"
+#import <MediaPlayer/MediaPlayer.h>
+#import <AVFoundation/AVFoundation.h>
+#import "PublishViewController.h"
+#import "YXVideoKitEngine.h"
+#import "YXVideoKitTool.h"
+#import "EffectCollectionViewCell.h"
+#import "ProgressView.h"
+
+//#import <AVFoundation/AVFoundation.h>
+#import <Photos/Photos.h>
+
+static NSString *const colleCellID = @"collecColl";
+@interface EffectsViewController ()<YXVideoKitEnginePlayerDelegate,UICollectionViewDelegate,UICollectionViewDataSource>
+{
+    CGFloat _saveFloat;
+}
+@property (strong, nonatomic) AVPlayer *player;
+@property (strong, nonatomic) AVPlayerLayer *playerLayer;
+@property (strong, nonatomic)  UIView *videoLayer;
+@property (nonatomic, retain) YXVideoKitEngine  *videoEngine;
+@property (assign, nonatomic) NSInteger tagInteder;
+@property (assign, nonatomic) BOOL butSelected;
+@property (strong, nonatomic) UIButton  *lastSelectBtn;
+@property (nonatomic, retain) NSMutableArray    *mvArray;
+@property (nonatomic, retain) NSMutableArray    *filterArray;
+@property (strong, nonatomic) UICollectionView  *effectCollectionView;
+@property (strong, nonatomic) NSMutableArray    *collectionArr;
+@property (strong, nonatomic) EffectCollectionViewCell *cell;
+@property (strong, nonatomic) EffectCollectionViewCell *selectCell;
+@property (strong, nonatomic) EffectCollectionViewCell *lastCell;
+@property (strong, nonatomic) NSMutableArray *cellArr;
+@property (strong, nonatomic) ProgressView *progress;
+
+@end
+
+@implementation EffectsViewController
+
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+    //留意这里，最好调用
+    [self.videoEngine clean];
+
+}
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    self.navigationItem.title = @"预览";
+    [self addBarButtonItem];
+}
+- (instancetype)initWithVideoPath:(NSString*)path
+{
+    self = [super init];
+    if (self) {
+        self.videoURL = path;
+    }
+    return self;
+}
+//- (instancetype)initWithVideoPath:(NSString*)path {
+//    self.videoURL = path;
+//    
+//}
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    _tagInteder = 4500;
+    _butSelected = YES;
+    self.view.backgroundColor = [UIColor whiteColor];
+    
+    [self initPlayer];
+    [self initData];
+    [self initFooterView];
+    
+//    [self playerView];
+    [self.view addSubview:self.effectCollectionView];
+}
+#pragma mark - data
+- (void)initData
+{
+    self.mvArray = [NSMutableArray array];
+    self.filterArray = [NSMutableArray array];
+    self.collectionArr = [NSMutableArray array];
+    self.cellArr = [NSMutableArray array];
+    [self.mvArray addObjectsFromArray:[self getMVArray]];
+    [self.filterArray addObjectsFromArray:[self getFilterArray]];
+//    NSLog(@"%ld   %ld",self.mvArray.count,self.filterArray.count);
+    [self.collectionArr addObjectsFromArray:self.mvArray];
+}
+- (NSArray*)getMVArray
+{
+    return [self getEffectsWithFolderName:@"Theme" orderJson:@"theme.json"];
+}
+
+- (NSArray*)getFilterArray
+{
+    return [self getEffectsWithFolderName:@"Filter" orderJson:@"filter.json"];
+}
+- (NSArray *)getEffectsWithFolderName:(NSString*)folderName orderJson:(NSString*)orderJson
+{
+    NSString *themePath = [YXVideoKitTool getFileFromSDKBundle:folderName];
+    NSString *jsonPath = [themePath stringByAppendingPathComponent:orderJson];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:jsonPath]) {
+        NSData *configData = [NSData dataWithContentsOfFile:jsonPath];
+        if(configData) {
+            NSError *error;
+            NSDictionary *config = [NSJSONSerialization JSONObjectWithData:configData options:kNilOptions error:&error];
+            
+            NSMutableArray *mvArray = [NSMutableArray array];
+            [mvArray addObject:[YXVideoEffectModel buildNoneModel]];
+            if ([YXVideoKitTool isValidNSArray:config[@"Order"]])
+            {
+                NSArray *themeOrder = config[@"Order"];
+                for (NSString *themeName in themeOrder) {
+                    YXVideoEffectModel *effectModel = [[YXVideoEffectModel alloc] initWithName:themeName andPath:themePath];
+                    [mvArray addObject:effectModel];
+                }
+            }
+            return mvArray;
+        }
+    }
+    return nil;
+}
+
+
+- (void)addBarButtonItem {
+    UIButton *button1 = [UIButton buttonWithType:UIButtonTypeCustom];
+    [button1 setTitle:@"" forState:UIControlStateNormal];
+    [button1 setImage:[UIImage imageNamed:@"Return-1"] forState:UIControlStateNormal];
+    [button1 setImage:[UIImage imageNamed:@"Return-1"] forState:UIControlStateHighlighted];
+    [button1 addTarget:self action:@selector(back) forControlEvents:UIControlEventTouchUpInside];
+    button1.adjustsImageWhenHighlighted = NO;
+    [button1 sizeToFit];
+    // 设置返回按钮
+    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:button1];
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+    [button setImage:[UIImage imageNamed:@"Determine"] forState:UIControlStateNormal];
+    [button setImage:[UIImage imageNamed:@"Determine"]
+            forState:UIControlStateHighlighted];
+    [button setTitle:@"" forState:UIControlStateNormal];
+    [button addTarget:self action:@selector(NextPublishVC) forControlEvents:UIControlEventTouchUpInside];
+    button.adjustsImageWhenHighlighted = NO;
+    [button sizeToFit];
+    // 设置返回按钮
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:button];
+}
+- (void)back { 
+//    [self dismissViewControllerAnimated:YES completion:nil];
+    if (_isDiss) {
+        [self dismissViewControllerAnimated:YES completion:nil];
+    } else {
+        [self.navigationController popViewControllerAnimated:YES];
+    }
+}
+
+- (void)NextPublishVC {
+    _progress = [[ProgressView alloc]initWithFrame:self.view.bounds];
+    AlertUtils *aler = [[AlertUtils alloc]init];
+    aler.contentView = _progress;
+    [aler show];
+    PublishViewController *pulish = [[PublishViewController alloc]init];
+    pulish.videoPath = self.videoURL;
+    __weak typeof(self) weakSelf = self;
+    [self.videoEngine saveVideoToPath:_videoURL withProgressBlock:^(double progress) {
+                if (progress*100 - _saveFloat >= 1) {
+        _saveFloat = progress*100;
+        weakSelf.progress.progress = progress*100;
+    }
+    } completionHandler:^(BOOL success, NSError *error) {
+        [aler hide];
+        [weakSelf.progress removeFromSuperview];
+        [weakSelf.navigationController pushViewController:pulish animated:YES];
+    }];
+}
+-(UIImage*) thumbnailImageForVideo:(NSURL *)videoURL atTime:(NSTimeInterval)time {
+    
+    AVURLAsset *asset = [[AVURLAsset alloc] initWithURL:videoURL options:nil];
+    NSParameterAssert(asset);
+    AVAssetImageGenerator *assetImageGenerator =[[AVAssetImageGenerator alloc] initWithAsset:asset];
+    assetImageGenerator.appliesPreferredTrackTransform = YES;
+    assetImageGenerator.apertureMode = AVAssetImageGeneratorApertureModeEncodedPixels;
+    
+    CGImageRef thumbnailImageRef = NULL;
+    CFTimeInterval thumbnailImageTime = time;
+    NSError *thumbnailImageGenerationError = nil;
+    thumbnailImageRef = [assetImageGenerator copyCGImageAtTime:CMTimeMake(thumbnailImageTime, 60)actualTime:NULL error:&thumbnailImageGenerationError];
+    
+    if(!thumbnailImageRef)
+        NSLog(@"thumbnailImageGenerationError %@",thumbnailImageGenerationError);
+    
+    UIImage*thumbnailImage = thumbnailImageRef ? [[UIImage alloc]initWithCGImage: thumbnailImageRef] : nil;
+    
+    return thumbnailImage; 
+}
+
+- (void)initPlayer {
+    self.videoLayer = [[UIView alloc]initWithFrame:CGRectMake(0, 64, kScreenW, 747*kDistanceWidthRatio)];
+    self.playerLayer.frame = self.videoLayer.bounds;
+    self.videoLayer.backgroundColor = [UIColor orangeColor];
+    [self.view addSubview:self.videoLayer];
+    NSMutableArray *array = [NSMutableArray array];
+    [array addObject:_videoURL];
+    self.videoEngine = [[YXVideoKitEngine alloc] initWithClips:array withView:self.videoLayer useEffect:YES];//设置使用效果
+    self.videoEngine.delegate = self;
+    [self.videoEngine setVideoNickName:@"你猜我是谁"];
+    //普通播放
+    [self.videoEngine applyEffect:[YXVideoEffectModel buildNoneModel] withBeginBlock:nil andCompletionBlock:nil];
+}
+- (void) initFooterView {
+    NSArray *arr = @[@"MV",@"特效"];
+    CGSize size = [arr[0] sizeWithAttributes:@{NSFontAttributeName:[UIFont systemFontOfSize:14]}];
+    for (int i = 0; i < arr.count; i++) {
+        [self addChangeButt:arr[i] point:CGPointMake(32*kDistanceWidthRatio + size.width/2.f + 110*kDistanceWidthRatio*i, 64 + (747 + 74)*kDistanceWidthRatio)];
+    }
+    UIView *lineView = [[UIView alloc]initWithFrame:CGRectMake(0, CGRectGetMaxY(self.videoLayer.frame) + 131*kDistanceWidthRatio, kScreenW, 1)];
+    lineView.backgroundColor = [UIColor grayColor];
+    [self.view addSubview:lineView];
+}
+- (void) addChangeButt:(NSString *)title point:(CGPoint)point {
+    UIButton *but = [UIButton buttonWithType:UIButtonTypeCustom];
+    [but setTitle:title forState:UIControlStateNormal];
+    but.titleLabel.font = [UIFont systemFontOfSize:14];
+    [but setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+    [but setTitleColor:kColor(245, 30, 100) forState:UIControlStateSelected];
+    but.tag = _tagInteder++;
+    CGSize size = [but.titleLabel.text sizeWithAttributes:@{NSFontAttributeName:[UIFont systemFontOfSize:14]}];
+    but.bounds = CGRectMake(0, 0, size.width, size.height);
+    but.center = point;
+    [but addTarget:self action:@selector(action_changeEffects:) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:but];
+    if (but.tag == 4500) {
+        but.selected = YES;
+        _lastSelectBtn = but;
+    }
+}
+
+- (void)action_changeEffects:(UIButton *)sender {
+    if (_lastSelectBtn) {
+        self.selectCell.titleLabel.textColor = [UIColor blackColor];
+        self.selectCell.roundImageView.hidden = YES;
+//        [self.effectCollectionView removeFromSuperview];
+        if (sender != _lastSelectBtn) {
+            _lastSelectBtn.selected = NO;
+            _butSelected = YES;
+            [self.collectionArr removeAllObjects];
+            [self.selectCell  removeFromSuperview];
+            [self.lastCell removeFromSuperview];
+            [self.cellArr removeAllObjects];
+            _lastSelectBtn = sender;
+            sender.selected = YES;
+            switch (sender.tag) {
+                case 4500:
+                    [self.collectionArr addObjectsFromArray:self.mvArray];
+                    [self.effectCollectionView reloadData];
+                    break;
+                case 4501:
+                    [self.collectionArr addObjectsFromArray:self.filterArray];
+                    [self.effectCollectionView reloadData];
+                default:
+                    break;
+            }
+        }
+    }
+}
+- (void)YXVideoKitEnginePlayerDoPlay
+{
+//    NSLog(@"%@", @"播放中");
+}
+- (void)YXVideoKitEnginePlayerDoPause
+{
+//    NSLog(@"%@", @"暂停中");
+}
+
+#pragma  mark UICollectionViewDelegate && UICollectionViewDataSource
+
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+    
+    return self.collectionArr.count;
+}
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+    _cell = [collectionView dequeueReusableCellWithReuseIdentifier:colleCellID forIndexPath:indexPath];
+    _cell.effectModel = self.collectionArr[indexPath.row];
+
+    if (_butSelected) {
+        _cell.titleLabel.textColor = [UIColor redColor];
+        _cell.roundImageView.hidden = NO;
+        self.selectCell = _cell;
+        _butSelected = NO;
+    } else {
+        _cell.titleLabel.textColor = [UIColor blackColor];
+        _cell.roundImageView.hidden = YES;
+
+    }
+    return _cell;
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+//    NSLog(@"   *******     %ld",indexPath.row);
+    YXVideoEffectModel *effectModel = nil;
+    effectModel = self.collectionArr[indexPath.row];
+    self.lastCell = (EffectCollectionViewCell *)[collectionView cellForItemAtIndexPath:indexPath];
+    if (self.selectCell != self.lastCell && self.selectCell != nil) {
+        [self.videoEngine applyEffect:effectModel withBeginBlock:nil andCompletionBlock:nil];
+        self.lastCell.titleLabel.textColor = [UIColor redColor];
+        self.lastCell.roundImageView.hidden = NO;
+        self.selectCell.titleLabel.textColor = [UIColor blackColor];
+        self.selectCell.roundImageView.hidden = YES;
+        self.selectCell = self.lastCell;
+    }
+}
+
+
+
+#pragma mark Getters
+
+- (UICollectionView *)effectCollectionView {
+    if (!_effectCollectionView) {
+        //初始化一个布局对象
+        UICollectionViewFlowLayout *flowLayout = [[UICollectionViewFlowLayout alloc]init];
+        flowLayout.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+        //设置最小行距
+        flowLayout.minimumLineSpacing = 22*kDistanceWidthRatio;
+        //设置最小间距
+        flowLayout.minimumInteritemSpacing = 22*kDistanceWidthRatio;
+        //设置格子大小
+        flowLayout.itemSize = CGSizeMake(131*kDistanceWidthRatio, kScreenH - (747+131+88)*kDistanceWidthRatio);
+        //设置组边界
+        flowLayout.sectionInset = UIEdgeInsetsMake(0, 28*kDistanceWidthRatio, 0, 28*kDistanceWidthRatio);
+        //初始化集合视图
+        _effectCollectionView = [[UICollectionView alloc]initWithFrame:CGRectMake(0, 64 + (747+131+88)*kDistanceWidthRatio, kScreenW, kScreenH - (747+131+88)*kDistanceWidthRatio) collectionViewLayout:flowLayout];
+        //设置背景色
+        _effectCollectionView.backgroundColor = [UIColor whiteColor];
+        //设置代理和数据源
+        _effectCollectionView.delegate = self;
+        _effectCollectionView.dataSource = self;
+        [_effectCollectionView registerClass:[EffectCollectionViewCell class] forCellWithReuseIdentifier:colleCellID];
+
+    }
+    return _effectCollectionView;
+}
+
+
+
+
+@end

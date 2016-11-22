@@ -1,0 +1,20 @@
+//
+//  AFNetworkTool.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/11/8.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface AFNetworkTool : NSObject
+//+ (void)upLoadToUrlString:(NSString *)url parameters:(NSDictionary *)parameters fileData:(NSData *)fileData name:(NSString *)name fileName:(NSString *)fileName mimeType:(NSString *)mimeType  progress:(void (^)(NSProgress *))progress success:(void (^)(NSURLSessionDataTask* , id))success failure:(void (^)(NSURLSessionDataTask* , NSError *))failure ;
++ (void)upLoadToUrlString:(NSString *)url parameters:(NSDictionary *)parameters fileData:(NSData *)fileData name:(NSString *)name fileName:(NSString *)fileName mimeType:(NSString *)mimeType  fileData:(NSData *)videoData name:(NSString *)vname fileName:(NSString *)videoName mimeType:(NSString *)videoType   progress:(void (^)(NSProgress *))progress success:(void (^)(NSURLSessionDataTask* , id))success failure:(void (^)(NSURLSessionDataTask* , NSError *))failure ;
+
++ (void)upLoadToUrlImageString:(NSString *)url parameters:(NSDictionary *)parameters fileData:(NSData *)fileData name:(NSString *)name fileName:(NSString *)fileName mimeType:(NSString *)mimeType  progress:(void (^)(NSProgress *))progress success:(void (^)(NSURLSessionDataTask* , id))success failure:(void (^)(NSURLSessionDataTask* , NSError *))failure ;
+
+
+
+
+@end

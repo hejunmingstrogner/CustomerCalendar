@@ -1,0 +1,21 @@
+//
+//  ThemeModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/19.
+//  Copyright © 2016年 CX. All rights reserved.
+//主题model
+
+#import <Foundation/Foundation.h>
+
+@interface ThemeModel : NSObject
+@property (nonatomic, assign) NSInteger theme_id;//主题id
+@property (nonatomic, copy) NSString *theme_name;//主题标题
+@property (nonatomic, copy) NSString *theme_image;//主题缩略图地址
+@property (nonatomic, assign) NSInteger theme_create_count;//主题被创建次数
+@property (nonatomic, copy) NSString *theme_brief;//主题简介
+@property (nonatomic, copy) NSString *theme_download_url;//主题素材下载地址
+@property (nonatomic, copy) NSString *theme_video_url;//主题视频地址
+
+
+@end

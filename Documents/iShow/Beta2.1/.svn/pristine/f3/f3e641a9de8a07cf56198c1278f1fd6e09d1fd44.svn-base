@@ -1,0 +1,186 @@
+//
+//  UserHeaderView.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/19.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "UserHeaderView.h"
+#import "CareFansInfoController.h"
+#import "EditUserInfoViewController.h"
+
+@implementation UserHeaderView
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    
+    //当用户不是自己时，才显示关注的按钮
+    if (![[ConfigModel shareConfigModel].user_id isEqual:myUserId]) {
+        self.concernButton.hidden=NO;
+    }
+    [self getUserInfo];
+   // [self loadCareData];
+    
+}
+
+////获取会员关注
+//-(void)loadCareData{
+//    NSDictionary *dict=@{@"user_id":[ConfigModel shareConfigModel].user_id};
+//    [[NetworkingHelper shareINstance] GET:kBaseUrl(@"User/getUserFollow") dict:dict succeedData:^(id data) {
+//        if (data) {
+//            UserListModel *listModel=[[UserListModel alloc] initWithDictionary:data error:nil];
+//            self.careNumLabel.text=[NSString stringWithFormat:@"%ld",listModel.records.longValue];
+//            [self loadFansData];//获取完关注数据后获取粉丝数据
+//        }
+//    } failure:^(NSError *error) {
+//        
+//    }];
+//}
+
+////获取会员粉丝
+//-(void)loadFansData{
+//    NSDictionary *dict=@{@"user_id":[ConfigModel shareConfigModel].user_id};
+//    [[NetworkingHelper shareINstance] GET:kBaseUrl(@"User/getUserFans") dict:dict succeedData:^(id data) {
+//        if (data) {
+//            UserListModel *listModel=[[UserListModel alloc] initWithDictionary:data error:nil];
+//            self.fansNumLabel.text=[NSString stringWithFormat:@"%ld",listModel.records.longValue];
+//            [self getUserInfo];
+//        }
+//    } failure:^(NSError *error) {
+//        
+//    }];
+//    
+//}
+
+//获取会员资料
+-(void)getUserInfo{
+    NSDictionary *dict=@{@"user_id":[ConfigModel shareConfigModel].user_id};
+    [[NetworkingHelper shareINstance] GET:@"User/getUserInfo" dict:dict succeedData:^(id data) {
+        if (data) {
+            self.nameLabel.text=data[@"user_nick_name"];
+            self.describeLabel.text=data[@"user_signature"];
+            
+            NSInteger isConcerend=[data[@"is_follow"] integerValue];
+            if (isConcerend==1) {//0是未关注,1是关注
+                self.concernButton.selected=YES;
+            }
+            self.fansNumLabel.text=[NSString stringWithFormat:@"%ld",[data[@"fans_count"] integerValue]];
+            self.videoNumLabel.text=[NSString stringWithFormat:@"%ld",[data[@"video_count"] integerValue]];
+            self.careNumLabel.text=[NSString stringWithFormat:@"%ld",[data[@"follow_count"] integerValue]];
+            [self.headerImageView sd_setImageWithURL:[NSURL URLWithString:data[@"user_image"]]];
+            self.headerImageView.size=CGSizeMake(128.0/kPictureW*kScreenW, 128.0/kPictureW*kScreenW);
+            self.headerImageView.layer.cornerRadius=self.headerImageView.size.width/2.0;
+            self.headerImageView.layer.masksToBounds=YES;
+        }
+    } failure:^(NSError *error) {
+        
+    }];
+}
+- (IBAction)fansButtonClick:(id)sender {
+    CareFansInfoController *controller=[[CareFansInfoController alloc] init];
+    controller.barTextType=1;
+    [[self viewController].navigationController pushViewController:controller animated:YES];
+    
+}
+- (IBAction)careButtonClick:(id)sender {
+    CareFansInfoController *controller=[[CareFansInfoController alloc] init];
+    controller.barTextType=0;
+    [[self viewController].navigationController pushViewController:controller animated:YES];
+}
+- (IBAction)moreButtonClick:(id)sender {
+    EditUserInfoViewController *controller=[[EditUserInfoViewController alloc] init];
+    [[self viewController].navigationController pushViewController:controller animated:YES];
+}
+//关注
+- (IBAction)concerButtonClick:(id)sender {
+    self.alert=[AlertView instanceAlertView];
+    self.alert.delegate=self;
+    self.alert.layer.cornerRadius=20;
+    self.utils=[[AlertUtils alloc] init];
+    self.utils.contentView=self.alert;
+    if (self.concernButton.selected==YES) {
+        self.alert.describeLabel.text=@"确定不再关注此人?";
+        [self.utils show];
+    }else{
+        self.alert.describeLabel.text=@"确定关注此人?";
+        [self.utils show];
+    }
+    
+}
+    
+    //这里处理数据，如果选择YES,才会处理数据
+-(void)alertContentYesButtonClick{
+        
+        NSDictionary *dict=@{@"follow_id":[ConfigModel shareConfigModel].user_id};
+        
+        if (self.concernButton.selected==YES) {
+            self.alert.describeLabel.text=@"确定不再关注此人?";
+            [[NetworkingHelper shareINstance] GET:@"User/cancelFollowUser" dict:dict succeedData:^(id data) {
+                if ([data isEqualToString:@"操作成功"]) {
+                    self.concernButton.selected=!self.concernButton.selected;
+                    
+                }
+            } failure:^(NSError *error) {
+                
+            }];
+            
+        }else{
+            self.alert.describeLabel.text=@"确定关注此人?";
+            
+            [[NetworkingHelper shareINstance] GET:@"User/followUser" dict:dict succeedData:^(id data) {
+                if ([data isEqualToString:@"操作成功"]) {
+                    self.concernButton.selected=!self.concernButton.selected;
+                }
+            } failure:^(NSError *error) {
+                
+            }];
+        }
+    }
+
+-(void)layoutSubviews{
+    [super layoutSubviews];
+    //重置headerView的frame
+    self.headerImageView.frame=CGRectMake(self.headerImageView.frame.origin.x, self.headerImageView.frame.origin.y, 150.0/kPictureW*kScreenW, 150.0/kPictureW*kScreenW);
+    self.headerImageView.layer.cornerRadius=self.headerImageView.frame.size.width/2.0;
+    self.headerImageView.layer.masksToBounds=YES;
+    
+    
+//    [self.nameLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+//        make.left.equalTo(self.headerImageView).offset(30.0/kPictureW*kScreenW);
+//        make.top.equalTo(self.headerImageView).offset(42.0/kPictureH*kScreenH);
+//    }];
+//    [self.describeLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+//        make.top.equalTo(self.nameLabel).offset(28.0/kPictureH*kScreenH);
+//        make.left.equalTo(self.nameLabel);
+//    }];
+//    [self.moreButton mas_makeConstraints:^(MASConstraintMaker *make) {
+//        make.centerY.mas_equalTo(self.headerImageView.mas_centerY);
+//        make.right.equalTo(self).offset(-20.0/kPictureW*kScreenW);
+//    }];
+//    [self.videoNumLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+//        make.centerX.equalTo(@[self.fansNumLabel,self.careNumLabel]);
+//        make.centerX.mas_equalTo(self.videoLabel.mas_centerX);
+//        make.top.equalTo(self.headerImageView).offset(68.0/kPictureH*kScreenH);
+//    }];
+//    
+//    [self.videoLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+//        make.left.equalTo(self).offset(41.0/kPictureW*kScreenW);
+//    }];
+//    
+//    [self.oneView mas_makeConstraints:^(MASConstraintMaker *make) {
+//        make.left.equalTo(self.videoLabel).offset(96.0/kPictureW*kScreenW);
+//    }];
+}
+
+- (UIViewController *)viewController {
+    for (UIView* next = [self superview]; next; next = next.superview) {
+        UIResponder *nextResponder = [next nextResponder];
+        if ([nextResponder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController *)nextResponder;
+        }
+    }
+    return nil;
+}
+
+@end

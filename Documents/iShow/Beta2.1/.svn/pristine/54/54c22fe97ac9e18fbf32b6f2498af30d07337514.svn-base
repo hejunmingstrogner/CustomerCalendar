@@ -1,0 +1,32 @@
+//
+//  testcontroller.m
+//  VideoProject
+//
+//  Created by once_CH on 16/9/6.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "testcontroller.h"
+
+@interface testcontroller ()
+
+@end
+
+@implementation testcontroller
+
+-(void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor whiteColor];
+//    [self.navigationController popViewControllerAnimated:YES];
+}
+- (void)viewDidAppear:(BOOL)animated {
+    self.navigationController.navigationBarHidden = NO;
+}
+-(instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        self.hidesBottomBarWhenPushed = YES;
+    }
+    return self;
+}
+@end

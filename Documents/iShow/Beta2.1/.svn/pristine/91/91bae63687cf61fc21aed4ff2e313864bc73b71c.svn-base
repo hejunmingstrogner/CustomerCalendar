@@ -1,0 +1,65 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#ifndef __MPLOG_H__
+#define __MPLOG_H__
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+
+#ifdef ANDROID_NDK
+#include <android/log.h>
+#endif
+
+typedef enum {
+    kDebug = 0,
+    kInfo,
+    kWraning,
+    kError,
+} MpMovieLogLevel;
+
+#define PRINTLOG(fp, format) \
+    va_list arg; \
+    va_start(arg, format); \
+    vfprintf( fp , format, arg); \
+    va_end(arg);
+
+#define PRINTLOG_ANDROID(prio, format) \
+    va_list arg; \
+    va_start(arg, format); \
+    __android_log_vprint(prio, "MpMovie", format, arg); \
+    va_end(arg);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+static void MpLog(MpMovieLogLevel level, const char *args, ...)
+{
+    if(level == kError){
+#ifdef ANDROID_NDK
+        PRINTLOG_ANDROID(ANDROID_LOG_INFO, args);
+
+#else
+        PRINTLOG(stderr, args);
+#endif
+    }else{
+#ifdef MP_DEBUG
+#ifdef ANDROID_NDK
+        PRINTLOG_ANDROID(ANDROID_LOG_INFO, args);
+#else
+        PRINTLOG(stdout, args);
+#endif
+#endif
+    }
+}
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+

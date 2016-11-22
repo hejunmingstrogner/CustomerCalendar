@@ -1,0 +1,46 @@
+//
+//  ShareListModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/24.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <JSONModel/JSONModel.h>
+
+@protocol ShareListModel <NSObject>
+@end
+
+@interface ShareListModel : JSONModel
+@property (nonatomic,strong ) NSString <Optional> *share_id;
+@property (nonatomic,strong ) NSString <Optional> *share_name;
+@property (nonatomic,strong ) NSString <Optional> *share_image;
+@property (nonatomic,strong ) NSString <Optional> *video_id;
+@property (nonatomic,strong ) NSString <Optional> *share_zan_count;
+@property (nonatomic,strong ) NSString <Optional> *share_follow_count;
+@property (nonatomic,strong ) NSString <Optional> *share_share_count;
+@property (nonatomic,strong ) NSString <Optional> *share_view_count;
+@property (nonatomic,strong ) NSString <Optional> *theme_name;
+@property (nonatomic,strong ) NSString <Optional> *video_url;
+@property (nonatomic,strong ) NSString <Optional> *user_id;
+@property (nonatomic,strong ) NSString <Optional> *user_nick_name;
+@property (nonatomic,strong ) NSString <Optional> *user_image;
+
+@property (nonatomic,strong ) NSString <Optional> * height;
+@property (nonatomic,strong ) NSString <Optional> * widht;
+
+//@property (nonatomic, assign) NSNumber <Optional> *share_id; //分享id
+//@property (nonatomic, copy) NSString <Optional> *share_name; //分享标题
+//@property (nonatomic, copy) NSString <Optional> *share_image; //分享缩略图地址
+//@property (nonatomic, assign) NSNumber <Optional> *share_zan_count;//点赞数
+//@property (nonatomic, assign) NSNumber <Optional> *share_follow_count;//收藏数
+//@property (nonatomic, assign) NSNumber <Optional> *share_share_count;//分享数
+//@property (nonatomic, assign) NSNumber <Optional> *share_view_count;//浏览数
+//@property (nonatomic,strong ) NSNumber <Optional> *video_id;
+//@property (nonatomic,strong ) NSString <Optional> *theme_name;
+//@property (nonatomic,strong ) NSString <Optional> *video_url;
+//@property (nonatomic,strong ) NSNumber <Optional> *user_id;
+//@property (nonatomic,strong ) NSString <Optional> *user_nick_name;
+//@property (nonatomic,strong ) NSString <Optional> *user_image;
+
+@end

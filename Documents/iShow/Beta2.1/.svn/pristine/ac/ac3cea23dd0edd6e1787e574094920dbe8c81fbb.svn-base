@@ -1,0 +1,20 @@
+//
+//  ShareListModel.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/24.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "ShareListModel.h"
+
+@implementation ShareListModel
+//- (instancetype)init
+//{
+//    self = [super init];
+//    if (self) {
+//        _height = @"210";
+//    }
+//    return self;
+//}
+@end

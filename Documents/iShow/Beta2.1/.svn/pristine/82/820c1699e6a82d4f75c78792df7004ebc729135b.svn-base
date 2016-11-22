@@ -1,0 +1,19 @@
+//
+//  VideoModel.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/19.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "VideoModel.h"
+
+@implementation VideoModel
+
+//-(NSArray *)videos{
+//    if (_videos==nil) {
+//        _videos=[[NSArray alloc] init];
+//    }
+//    return _videos;
+//}
+@end

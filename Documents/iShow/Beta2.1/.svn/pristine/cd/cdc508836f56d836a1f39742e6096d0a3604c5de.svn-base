@@ -1,0 +1,174 @@
+//
+//  FifthViewController.m
+//  VideoProject
+//
+//  Created by storm on 16/9/6.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "FifthViewController.h"
+#import "FavoriteVideoCOntroller.h"
+#import "MyVideoController.h"
+#import "PlayHistoryController.h"
+#import "SettingController.h"
+#import "CareFansInfoController.h"
+#import "DraftBoxViewController.h"
+#import "UserDetailController.h"
+#import "MineInfoViewController.h"
+@interface FifthViewController ()
+@property (nonatomic, strong) UserModel *userModel;
+@end
+
+@implementation FifthViewController
+
+
+- (void)viewDidLoad {
+    
+    [super viewDidLoad];
+    [self initThreeView];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(tokenIsReady) name:@"tokenIsReady" object:nil];
+    if ([userToken isEqualToString:@""]||userToken==nil) {
+    }else{
+        if ([ConfigModel shareConfigModel].userModel.user_id == nil) {
+            [self initData];
+        }else{
+            [self initViewWithUserModel:[ConfigModel shareConfigModel].userModel];
+        }
+        
+    }
+    
+    
+}
+
+-(void)tokenIsReady{
+  [self initData];
+    
+}
+
+
+//用代码约束3个View的布局
+-(void)initThreeView{
+    
+    self.topView.y=128.0*kDistanceHeightRatio;
+    self.centerView.y=CGRectGetMaxY(self.topView.frame)+4.0*kDistanceHeightRatio;
+    self.bottomView.y=CGRectGetMaxY(self.centerView.frame)+10.0*kDistanceHeightRatio;
+}
+
+
+-(void)initData{
+    
+    [[ConfigModel shareConfigModel] showRotationView];
+            [[NetworkingHelper shareINstance] GET:@"User/getUserStatistics" dict:nil succeedData:^(id data) {
+                NSLog(@"%@",data);
+                if (data) {
+         
+                    UserModel *userModel=[[UserModel alloc] init];
+                    userModel.fans_count=data[@"fans_count"];
+                    userModel.follow_count=data[@"follow_count"];
+                    userModel.is_follow=data[@"is_follow"];
+                    userModel.message_count=data[@"message_count"];
+                    userModel.user_id=data[@"user_id"];
+                    userModel.user_image=data[@"user_image"];
+                    userModel.user_nick_name=data[@"user_nick_name"];
+                    userModel.vdieo_total_count=data[@"vdieo_total_count"];
+                    userModel.video_count=data[@"video_count"];
+                    userModel.zan_video_count=data[@"video_count"];
+                    [ConfigModel shareConfigModel].userModel=userModel;
+                   
+                    [self initViewWithUserModel:[ConfigModel shareConfigModel].userModel];
+                    [[ConfigModel shareConfigModel].alertUtils hide];
+                }
+            } failure:^(NSError *error) {
+                [[ConfigModel shareConfigModel].alertUtils hide];
+            }];
+
+}
+
+
+-(void)initViewWithUserModel:(UserModel *)userModel{
+    self.historyNumLabel.text=[NSString stringWithFormat:@"%ld",[[VideoModelDBManager shareManager] selectAll].count];
+    self.nameLabel.text=userModel.user_nick_name;
+    self.describeLabel.text=userModel.user_signature;
+    self.headImageView.size=CGSizeMake(128.0/kPictureW*kScreenW, 128.0/kPictureW*kScreenW);
+    self.headImageView.layer.cornerRadius=self.headImageView.size.width/2.0;
+    self.headImageView.layer.masksToBounds=YES;
+    [self.headImageView sd_setImageWithURL:[NSURL URLWithString:userModel.user_image]];
+    self.fansNumLabel.text=[NSString stringWithFormat:@"%ld",userModel.fans_count.integerValue];
+    
+    self.inforamationNumLabel.text=[NSString stringWithFormat:@"%ld",userModel.message_count.integerValue];
+    self.attentionNumLabel.text=[NSString stringWithFormat:@"%ld",userModel.follow_count.integerValue];
+    self.myVIdeoNumLabel.text=[NSString stringWithFormat:@"%ld",userModel.video_count.integerValue];
+    
+    
+    self.myLoveNumLabel.text=[NSString stringWithFormat:@"%ld",userModel.zan_video_count.integerValue];
+}
+
+//我的视频
+- (IBAction)MyVideoButtonClick:(id)sender {
+    
+    [ConfigModel shareConfigModel].controllerType=myVideoController;
+    [self.navigationController pushViewController:[[CollectionBaseViewController alloc] init] animated:YES];
+}
+
+//赞过的视频
+- (IBAction)favoriteButtonClick:(id)sender {
+    [ConfigModel shareConfigModel].controllerType=favoriteVideoCOntroller;
+    [self.navigationController pushViewController:[[CollectionBaseViewController alloc] init] animated:YES];
+}
+
+//播放历史
+- (IBAction)playHistoryButtonClick:(id)sender {
+    
+    [ConfigModel shareConfigModel].controllerType=playHistoryController;
+    [self.navigationController pushViewController:[[PlayHistoryController alloc] init] animated:YES];
+}
+
+- (IBAction)settingButtonClick:(id)sender {
+    [self.navigationController pushViewController:[[SettingController alloc] init] animated:YES];
+}
+
+//关注
+- (IBAction)attentionButtonClick:(id)sender {
+    CareFansInfoController *controller=[[CareFansInfoController alloc] init];
+    controller.barTextType=0;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+//粉丝
+- (IBAction)fansButtonClick:(id)sender {
+    CareFansInfoController *controller=[[CareFansInfoController alloc] init];
+    controller.barTextType=1;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+//消息
+- (IBAction)infomationButtonClick:(id)sender {
+    MineInfoViewController *controller=[[MineInfoViewController alloc] init];
+    
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+//草稿箱
+- (IBAction)boxButtonClick:(id)sender {
+    DraftBoxViewController *controller=[[DraftBoxViewController alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (IBAction)userInfoButtonClick:(id)sender {
+    UserDetailController *controller=[[UserDetailController alloc] init];
+    //我的设置要把user_id设为0，获取我的资料
+    [ConfigModel shareConfigModel].user_id=myUserId;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+- (void)viewWillAppear:(BOOL)animated{
+    [super viewWillAppear:animated];
+    
+}
+
+@end

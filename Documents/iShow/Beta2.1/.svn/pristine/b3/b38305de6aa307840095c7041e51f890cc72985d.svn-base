@@ -1,0 +1,29 @@
+//
+//  AlertView.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/14.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@class AlertView;
+@protocol AlertContentViewYesButtonClickDelegate <NSObject>
+
+-(void)alertContentYesButtonClick;
+
+@end
+
+@interface AlertView : UIView
+@property (weak, nonatomic) IBOutlet UILabel *describeLabel;
+@property (weak, nonatomic) IBOutlet UIButton *falseButton;
+@property (weak, nonatomic) IBOutlet UIButton *yesButton;
+@property (nonatomic, strong) AlertView *alertContentView;
+
+@property (nonatomic, weak) id <AlertContentViewYesButtonClickDelegate> delegate;
+
++(instancetype)instanceAlertView;
+
+
+@end

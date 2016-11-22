@@ -1,0 +1,36 @@
+//
+//  ShareSearshModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/10/11.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <JSONModel/JSONModel.h>
+
+@protocol ShareSearshModel <NSObject>
+@end
+
+@interface ShareSearshModel : JSONModel
+@property (nonatomic,strong ) NSString <Optional> *share_id;
+@property (nonatomic,strong ) NSString <Optional> *share_name;
+@property (nonatomic,strong ) NSString <Optional> *share_image;
+@property (nonatomic,strong ) NSString <Optional> *video_id;
+@property (nonatomic,strong ) NSString <Optional> *video_name;
+@property (nonatomic,strong ) NSString <Optional> *video_zan_count;
+@property (nonatomic,strong ) NSString <Optional> *video_url;
+@property (nonatomic,strong ) NSString <Optional> *is_share;
+
+@property (nonatomic,strong ) NSString <Optional> *share_uptime;
+@property (nonatomic,strong ) NSString <Optional> *theme_name;
+@property (nonatomic,strong ) NSString <Optional> *user_id;
+@property (nonatomic,strong ) NSString <Optional> *user_nick_name;
+@property (nonatomic,strong ) NSString <Optional> *user_image;
+@property (nonatomic,strong ) NSString <Optional> *is_follow;
+@property (nonatomic,strong ) NSString <Optional> *is_zan;
+@property (nonatomic,strong ) NSString <Optional> *video_time;
+@property (nonatomic,strong ) NSString <Optional> *video_play_count;
+@property (nonatomic,strong ) NSString <Optional> *comment_count;
+
+
+@end

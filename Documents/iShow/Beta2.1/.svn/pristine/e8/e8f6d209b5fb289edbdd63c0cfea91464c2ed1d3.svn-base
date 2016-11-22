@@ -1,0 +1,14 @@
+//
+//  UserDetailController.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/14.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "BottomView.h"
+@interface UserDetailController : UIViewController
+@property (nonatomic, strong) NSNumber *user_id;
+@property (nonatomic, strong) BottomView *bottomView;
+@end

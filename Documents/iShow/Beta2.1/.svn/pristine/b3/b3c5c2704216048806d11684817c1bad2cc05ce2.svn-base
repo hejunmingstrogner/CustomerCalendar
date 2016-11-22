@@ -1,0 +1,18 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#import <Foundation/Foundation.h>
+#import <AVFoundation/AVFoundation.h>
+
+@interface VideoFrame : NSObject
+@property (nonatomic, getter = getWidth) int width;
+@property (nonatomic, getter = getHeight) int height;
+@property (nonatomic, getter = getPts) unsigned int pts;
+@property (nonatomic, getter = getFrameNo) int frameNo;
+
+- (id)initWithSampleBuffer:(CMSampleBufferRef)ref frameNo:(int)frameNo;
+- (unsigned char*)getRawData;
+- (void)releaseFrame;
+
+@end

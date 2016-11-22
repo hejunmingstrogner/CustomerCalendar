@@ -1,0 +1,19 @@
+//
+//  LayoutkeyboardTextView.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/19.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface LayoutkeyboardTextView : UIView
+@property (weak, nonatomic) UITextView *textView;
+@property (weak, nonatomic) UIButton *sendBtn;
+@property (weak, nonatomic) UIButton *gitbtn;
+@property (copy, nonatomic) NSString *placeholder;
+
+@property (copy, nonatomic) void (^(sendBlock)) (UITextView *textView);
+@property (copy, nonatomic) void (^(upBlock)) ();
+@end

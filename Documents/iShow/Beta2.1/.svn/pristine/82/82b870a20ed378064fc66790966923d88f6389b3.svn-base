@@ -1,0 +1,125 @@
+//
+//  LoginViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/21.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "LoginViewController.h"
+#import "RegisterViewController.h"
+#import "PasswordForgetViewController.h"
+#import "SettingController.h"
+#import "NavigationTopView.h"
+@interface LoginViewController ()
+
+@end
+
+@implementation LoginViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.title=@"用户账号登录";
+   
+    
+  //  [self initThreeView];
+}
+
+
+
+-(void)backButtonClick{
+
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+
+-(void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
+    [self.view endEditing:YES];
+}
+- (IBAction)loginButtonClick:(id)sender {
+    
+    if (self.phoneTextField.text.length==0) {
+        AlertView *alert=[AlertView instanceAlertView];
+        alert.layer.cornerRadius=20;
+        alert.describeLabel.text=@"请输入电话号码";
+        AlertUtils *utils=[[AlertUtils alloc] init];
+        utils.contentView=alert;
+        [utils show];
+    }else{
+        if (self.passwordTextField.text.length==0) {
+            AlertView *alert=[AlertView instanceAlertView];
+            alert.layer.cornerRadius=20;
+            alert.describeLabel.text=@"请输入密码";
+            AlertUtils *utils=[[AlertUtils alloc] init];
+            utils.contentView=alert;
+            [utils show];
+        }else{
+            if (![Utils checkTelNumber:self.phoneTextField.text]) {
+                AlertView *alert=[AlertView instanceAlertView];
+                alert.layer.cornerRadius=20;
+                alert.describeLabel.text=@"请输入正确的电话号码";
+                AlertUtils *utils=[[AlertUtils alloc] init];
+                utils.contentView=alert;
+                [utils show];
+            }else{
+                NSDictionary *dict=@{@"user_mobile":self.phoneTextField.text,@"user_password":self.passwordTextField.text};
+                [[NetworkingHelper shareINstance] POST:@"User/login" dict:dict succeedData:^(id data) {
+                    if (data) {
+                        NSLog(@"%@",data);
+                        UserModel *userModel=[[UserModel alloc] initWithDictionary:data error:nil];
+                        [ConfigModel shareConfigModel].userModel=userModel;
+
+                        saveUserToken(userModel.user_token);
+                        saveUserId(userModel.user_id);//只要是新账号登录，user_id就改变
+                        [self changeController];//切换界面
+                       
+                    }
+                } failure:^(NSError *error) {
+                    
+                }];
+            }
+        }
+    }
+    
+    
+}
+
+-(void)changeController{
+    if ([ConfigModel shareConfigModel].alertLogin) {
+        [self.navigationController popViewControllerAnimated:YES];
+        
+    }else{
+        for(UIViewController *controller in self.navigationController.viewControllers){
+            if ([controller isKindOfClass:[SettingController class]]) {
+                [self.navigationController popToViewController:controller animated:YES];
+            }
+        }
+    }
+}
+- (IBAction)registerButtonClick:(id)sender {
+    RegisterViewController *controller=[[RegisterViewController alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+- (IBAction)QQLoginButtonClick:(id)sender {
+}
+- (IBAction)weixinLoginButtonClick:(id)sender {
+}
+- (IBAction)weiboLoginButtonClick:(id)sender {
+}
+- (IBAction)passwordForgetButtonClick:(id)sender {
+    PasswordForgetViewController *con=[[PasswordForgetViewController alloc] init];
+    [self.navigationController pushViewController:con animated:YES];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+   
+}
+
+
+-(void)viewWillAppear:(BOOL)animated{
+    [super viewWillAppear:animated];
+    [self.navigationController setNavigationBarHidden:NO animated:YES];
+}
+
+@end

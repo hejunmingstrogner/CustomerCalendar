@@ -1,0 +1,204 @@
+/*
+ Copyright(C) 2011-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#import "writeMovie.h"
+#import <AVFoundation/AVFoundation.h>
+
+@implementation writeMovie {
+    AVAssetWriter *videoWriter_;
+    AVAssetWriterInput* videoWriterInput_;
+    AVAssetWriterInputPixelBufferAdaptor *adaptor_;
+    int width_, height_;
+    int fps_;
+    int frameCount_;
+    double frameDuration_;
+}
+
+- (BOOL)startWriteMovie:(NSString *)video width:(int)width height:(int)height fps:(int)fps bitrate:(int)bitrate
+{
+    if(video == nil || width <= 0 || height <= 0 || fps <= 0 || bitrate <= 0){
+        return false;
+    }
+    
+    // can't overwrite video
+    // we have to remove first if exists
+    NSFileManager *fileMgr = [NSFileManager defaultManager];
+    if ([fileMgr fileExistsAtPath:video]) {
+        if([fileMgr removeItemAtPath:video error:nil] != YES) {
+            NSLog(@"can't remove video file");
+            return NO;
+        }
+    }
+
+    width_ = width, height_ = height;
+    fps_ = fps;
+    
+    NSURL *url = [NSURL fileURLWithPath:video];
+    
+    videoWriter_ = [[AVAssetWriter alloc] initWithURL:url fileType:AVFileTypeQuickTimeMovie error:nil];
+    
+    NSDictionary *encodeSettings = [NSDictionary dictionaryWithObjectsAndKeys:
+                                   [NSNumber numberWithInt:bitrate], AVVideoAverageBitRateKey,
+                                   nil];
+    
+    NSDictionary *videoSettings = [NSDictionary dictionaryWithObjectsAndKeys:
+                                   AVVideoCodecH264, AVVideoCodecKey,
+                                   encodeSettings, AVVideoCompressionPropertiesKey,
+                                   [NSNumber numberWithInt:width], AVVideoWidthKey,
+                                   [NSNumber numberWithInt:height], AVVideoHeightKey,
+                                   nil];
+    
+    videoWriterInput_ = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo outputSettings:videoSettings];
+    
+    adaptor_ = [AVAssetWriterInputPixelBufferAdaptor assetWriterInputPixelBufferAdaptorWithAssetWriterInput:videoWriterInput_
+                                                                                sourcePixelBufferAttributes:nil];
+    
+    videoWriterInput_.expectsMediaDataInRealTime = YES;
+    [videoWriter_ addInput:videoWriterInput_];
+    
+    //Start a session:
+    [videoWriter_ startWriting];
+    [videoWriter_ startSessionAtSourceTime:kCMTimeZero];
+    
+    frameCount_ = 0;
+    frameDuration_ = 1.0;
+    
+    return YES;
+}
+
+static BOOL wait_;
+
+static void PixelBufferReleaseCB(void *releaseRefCon, const void *baseAddress) {
+    if(releaseRefCon) free(releaseRefCon);
+    wait_= NO;
+}
+
+- (BOOL)appendFrame:(unsigned char *)img width:(int)width height:(int)height block:(BOOL)block {
+    
+    unsigned char *baseAddr = (block)? nil : img;
+    CVPixelBufferRef pixelBuffer = NULL;
+    CVPixelBufferCreateWithBytes(nil, width, height, kCVPixelFormatType_32BGRA, img, 4 * width, PixelBufferReleaseCB, baseAddr, nil, &pixelBuffer);
+    
+    BOOL append_ok = NO;
+    int j = 0;
+    while(!append_ok && j < 30) {
+        if(adaptor_.assetWriterInput.readyForMoreMediaData) {
+            CMTime frameTime = CMTimeMake(frameCount_*frameDuration_, (int32_t)fps_);
+            append_ok = [adaptor_ appendPixelBuffer:pixelBuffer withPresentationTime:frameTime];
+            if(!append_ok){
+                NSError *error = videoWriter_.error;
+                if(error!=nil) {
+                    NSLog(@"Unresolved error %@,%@.", error, [error userInfo]);
+                    return NO;
+                }
+            }
+        } else {
+            [NSThread sleepForTimeInterval:0.01];
+        }
+        j++;
+    }
+
+    wait_ = block;
+    CFRelease(pixelBuffer);
+    while(wait_)
+        [NSThread sleepForTimeInterval:0.001];
+    
+    if(append_ok) {
+        ++frameCount_;
+        return YES;
+    } else
+        return NO;
+}
+
+- (void)finishWriting {
+    [videoWriterInput_ markAsFinished];
+    //[videoWriter_ finishWriting];
+    NSCondition *cond = [[NSCondition alloc] init];
+    [cond lock];
+    [videoWriter_ finishWritingWithCompletionHandler:^{
+        [cond lock];
+        [cond signal];
+        [cond unlock];
+    }];
+    [cond wait];
+    [cond unlock];
+    wait_ = NO;
+}
+
+- (void)finish {
+#if 1
+    [videoWriterInput_ markAsFinished];
+    //[videoWriter_ finishWriting];
+    if(videoWriter_.status == AVAssetWriterStatusWriting){
+        NSCondition *cond = [[NSCondition alloc] init];
+        [cond lock];
+        [videoWriter_ finishWritingWithCompletionHandler:^{
+            [cond lock];
+            [cond signal];
+            [cond unlock];
+        }];
+        [cond wait];
+        [cond unlock];
+    }
+#else       // this dose not work on iOS6(only simulator ?)
+    wait_ = YES;
+    [NSThread detachNewThreadSelector:@selector(finishWriting) toTarget:self withObject:nil];
+    while (wait_)
+        [NSThread sleepForTimeInterval:0.01];
+#endif
+}
+
+
+- (BOOL)addAudio:(NSString *)video audio:(NSString *)audio outVideo:(NSString *)outVideo {
+
+    // can't overwrite video
+    // we have to remove first if exists
+    NSFileManager *fileMgr = [NSFileManager defaultManager];
+    if ([fileMgr fileExistsAtPath:outVideo]) {
+        if([fileMgr removeItemAtPath:outVideo error:nil] != YES) {
+            NSLog(@"can't remove video file");
+            return NO;
+        }
+    }
+    
+    NSURL *videoUrl = [NSURL fileURLWithPath:video];
+    NSURL *audioUrl = [NSURL fileURLWithPath:audio];
+    NSURL *outVideoUrl = [NSURL fileURLWithPath:outVideo];
+
+    AVMutableComposition* mixComposition = [AVMutableComposition composition];
+
+    CMTime nextClipStartTime = kCMTimeZero;
+    
+    AVURLAsset *videoAsset = [[AVURLAsset alloc]initWithURL:videoUrl options:nil];
+    CMTimeRange video_timeRange = CMTimeRangeMake(kCMTimeZero,videoAsset.duration);
+    AVMutableCompositionTrack *a_compositionVideoTrack = [mixComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
+    [a_compositionVideoTrack insertTimeRange:video_timeRange ofTrack:[[videoAsset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0] atTime:nextClipStartTime error:nil];
+    
+    
+    AVURLAsset *audioAsset = [[AVURLAsset alloc]initWithURL:audioUrl options:nil];
+    CMTimeRange audio_timeRange = CMTimeRangeMake(kCMTimeZero, audioAsset.duration);
+    AVMutableCompositionTrack *b_compositionAudioTrack = [mixComposition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
+    [b_compositionAudioTrack insertTimeRange:audio_timeRange ofTrack:[[audioAsset tracksWithMediaType:AVMediaTypeAudio] objectAtIndex:0] atTime:nextClipStartTime error:nil];
+    
+    __block AVAssetExportSession *_assetExport = [[AVAssetExportSession alloc] initWithAsset:mixComposition presetName:AVAssetExportPresetPassthrough];
+    
+    _assetExport.outputFileType = AVFileTypeQuickTimeMovie;
+
+    _assetExport.outputURL = outVideoUrl;
+    
+    
+    [_assetExport exportAsynchronouslyWithCompletionHandler:^{}];
+    
+    while(1) {
+        int status = (int)[_assetExport status];
+        if(status == AVAssetExportSessionStatusCompleted || _assetExport.error) break;
+        [NSThread sleepForTimeInterval:0.1f];
+//        NSLog(@"waiting... progress:%f", [_assetExport progress]);
+    }
+
+    return (_assetExport.error)? NO : YES;
+}
+
+@end
+

@@ -1,0 +1,158 @@
+//
+//  YXVideoKitUse.h
+//  MPTVideoKit
+//
+//  Created by Simon on 15/4/15.
+//  Copyright (c) 2015年 Xuan Yi Xia CO.LTD. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+#import <AVFoundation/AVFoundation.h>
+#import "YXVideoEffectModel.h"
+#import "YXVideoComponentVideo.h"
+
+typedef void (^YXVideoKitEngineProcessStartBlock) ();
+typedef void (^YXVideoKitEngineCompletionBlock) (BOOL success, NSError *error);
+typedef void (^YXVideoKitEngineProgressBlock) (double progress);
+
+@protocol YXVideoKitEnginePlayerDelegate <NSObject>
+- (void)YXVideoKitEnginePlayerDoPlay;
+- (void)YXVideoKitEnginePlayerDoPause;
+
+@optional
+- (void)YXVideoKitEnginePlayerProgress:(CGFloat)progress;
+@end
+
+@interface YXVideoKitEngine : NSObject
+
+@property (nonatomic, readonly, retain) NSString                  *currentMusicPath;
+@property (nonatomic, assign) id <YXVideoKitEnginePlayerDelegate> delegate;
+@property (nonatomic, readonly, assign) BOOL                      isPlaying;
+@property (nonatomic, assign) BOOL                                useLowBitRate;
+@property (nonatomic, assign) BOOL                                donotFadeOut;
+@property (nonatomic, retain) CALayer                             *animatedLayer;
+/**
+ *  初始化视频编辑引擎
+ *
+ *  @param clipsPath 视频路径的数组
+ *  @param view      作为播放器的view
+ *  @param useEffect 是否应用视频特效，应用后不能seek
+ *
+ *  @return 视频编辑引擎
+ */
+- (id)initWithClips:(NSArray *)clipsPaths withView:(UIView *)view useEffect:(BOOL)useEffect;
+//默认使用特效
+- (id)initWithClips:(NSArray *)clipsPaths withView:(UIView *)view;
+
+/**
+ *  初始化视频编辑引擎
+ *
+ *  @param components YXVideoComponent对象
+ *  @param view       作为播放器的view
+ *  @param useEffect  是否应用视频特效，应用后不能seek
+ *
+ *  @return 视频编辑引擎
+ */
+- (id)initWithComponents:(NSArray *)components withView:(UIView *)view useEffect:(BOOL)useEffect;
+//默认使用特效
+- (id)initWithComponents:(NSArray *)components withView:(UIView *)view;
+
+//设置片段间过渡效果，见YXVideoTransition
+- (void)updateTransitionEffect:(NSArray*)array;
+
+//暂停播放
+- (void)pause;
+//继续播放
+- (void)resume;
+//离开时释放资源
+- (void)clean;
+//播放seek
+- (void)seekToTime:(CMTime)time;
+- (void)seekToSecond:(double)second;
+//seek的时候显示的是图片
+- (void)hideImageForVideo;
+
+//获取视频片段数组，YXVideoComponentVideo对象
+- (NSArray*)clips;
+//根据索引删除视频片段
+- (void)removeClipAt:(NSInteger)index;
+//删除所有片段
+- (void)removeAllClips;
+//插入视频片段
+- (void)insertClipAt:(NSInteger)index withClipPath:(NSString*)clipPath;
+//交换视频片段顺序
+- (void)exchangeClipAtIndex:(NSInteger)index1 withIndex:(NSInteger)index2;
+//复制一段视频
+- (void)duplicateClipAt:(NSInteger)index;
+//替换视频片段
+- (void)replaceAt:(NSInteger)index withComponent:(YXVideoComponentVideo*)component;
+//通过YXVideoComponent对象数组添加视频片段
+- (void)appendVideoComponents:(NSArray*)array;
+
+//更新自定义transform字符串数组
+- (void)updateCustomTransformStrings:(NSArray*)array;
+//更新某个视频的自定义transform字符串
+- (void)updateTransformAt:(NSInteger)index withTransformString:(NSString*)transformString;
+//更新自定义timeRange字典数组
+- (void)updateCustomTimeRangeDictionaries:(NSArray*)array;
+//更新某个视频的timeRange
+- (void)updateTimeRangeAt:(NSInteger)index withTimeRange:(CMTimeRange)timeRange;
+//完整的playerItem
+- (AVPlayerItem*)getFullTimeRangePlayerItem;
+
+//当前视频总时长
+- (CMTime)getCurrentDuration;
+//当前视频Composition
+- (AVComposition*)getCurrentComposition;
+
+//片尾昵称
+- (void)setVideoNickName:(NSString*)nick;
+/**
+ *  为视频加上效果
+ *
+ *  @param effectModel       效果对象
+ *  @param completionHandler YXVideoKitEngineCompletionBlock
+ */
+- (void)applyEffect:(YXVideoEffectModel*)effectModel withBeginBlock:(YXVideoKitEngineProcessStartBlock)startHandler andCompletionBlock:(YXVideoKitEngineCompletionBlock)completionHandler;
+
+/**
+ *  为视频加上音乐
+ *
+ *  @param musicPath         音乐路径
+ *  @param completionHandler YXVideoKitEngineCompletionBlock
+ */
+- (void)applyMusic:(NSString*)musicPath withCompletionBlock:(YXVideoKitEngineCompletionBlock)completionHandler;
+
+/**
+ *  普通拼接及播放
+ */
+- (void)applyNormalPlay;
+/**
+ *  普通拼接且不播放
+ */
+- (void)applyNormal;
+/**
+ *  重载并播放
+ */
+- (void)applyPlay;
+/**
+ *  重载且不播放
+ */
+- (void)apply;
+
+//更新表层动画而不需要重载
+- (void)updateWithAnimatedLayer:(CALayer*)animatedLayer;
+
+/**
+ *  保存视频到文件
+ *
+ *  @param videoPath         文件保存到的路径
+ *  @param progressHandler   YXVideoKitEngineProgressBlock
+ *  @param completionHandler YXVideoKitEngineCompletionBlock
+ */
+- (void)saveVideoToPath:(NSString *)videoPath withProgressBlock:(YXVideoKitEngineProgressBlock)progressHandler completionHandler:(YXVideoKitEngineCompletionBlock)completionHandler;
+
+- (id)initSecrectlyWithComponents:(NSArray *)components withView:(UIView *)view useEffect:(BOOL)useEffect;
+
+@end

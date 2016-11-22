@@ -1,0 +1,27 @@
+//
+//  CollectionBaseViewController.h
+//  VideoProject
+//
+//  Created by storm on 16/9/9.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "WaterfallLayout.h"
+#import "VideoModelDBManager.h"
+
+
+@interface CollectionBaseViewController : UIViewController<UICollectionViewDelegate,UICollectionViewDataSource,WaterfallLayoutDelegate>
+
+@property (nonatomic, strong) UICollectionView *collectionView;
+@property (nonatomic, strong) NSMutableArray *dataArray;
+
+@property (nonatomic, strong) NSMutableArray *highsArray;
+@property (nonatomic, strong) NSMutableArray *imageHeightssArray;
+@property (nonatomic, strong) NSMutableArray *textHeightArray;
+@property (nonatomic,assign) int pageCount;
+@property (nonatomic, assign) int totalPage;
+-(void)registerCollectionCell;
+
+
+@end

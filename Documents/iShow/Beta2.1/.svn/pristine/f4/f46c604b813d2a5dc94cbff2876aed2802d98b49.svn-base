@@ -1,0 +1,24 @@
+//
+//  Utils.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+#import "UIImage+MultiFormat.h"
+
+@interface Utils : NSObject
++(UIButton *)initButtonWithFrame:(CGRect)frame normalImage:(NSString *)normalImage selectImage:(NSString *)selectImage title:(NSString *)title;
+
++(UILabel *)initLabelWithFrame:(CGRect)frame text:(NSString *)text font:(CGFloat)font tintColor:(UIColor *)color;
++(UIImageView *)initImageViewWithFrame:(CGRect)frame imageName:(NSString *)name;
++(UILabel *)initLabelWithText:(NSString *)text font:(CGFloat)font tintColor:(UIColor *)color;
++(CGFloat)changeStationWidth:(NSString *)string anWidthTxtt:(CGFloat)widthText anfont:(CGFloat)fontSize;
++ (NSDictionary *)dictionaryWithJsonString:(NSString *)jsonString;
++ (BOOL)checkTelNumber:(NSString *) telNumber;
++(CGFloat)getImageHeightWithUrl:(NSString *)url withFrameWidth:(CGFloat)defineWidth;
+
+@end

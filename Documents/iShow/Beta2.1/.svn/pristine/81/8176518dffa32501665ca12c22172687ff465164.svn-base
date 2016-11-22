@@ -1,0 +1,12 @@
+/*
+ Copyright(C) 2011-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+@interface writeMovie : NSObject
+
+- (BOOL)startWriteMovie:(NSString *)video width:(int)width height:(int)height fps:(int)fps bitrate:(int)bitrate;
+- (BOOL)appendFrame:(unsigned char *)img width:(int)width height:(int)height block:(BOOL)block;
+- (void)finish;
+- (BOOL)addAudio:(NSString *)video audio:(NSString *)audio outVideo:(NSString *)outVideo;
+
+@end

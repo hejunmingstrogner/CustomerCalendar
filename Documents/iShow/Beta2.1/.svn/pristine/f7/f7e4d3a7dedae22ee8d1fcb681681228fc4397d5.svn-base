@@ -1,0 +1,300 @@
+//
+//  NetworkingHelper.m
+//  VideoProject
+//
+//  Created by storm on 16/9/9.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "NetworkingHelper.h"
+#import "LoginViewController.h"
+
+
+@implementation NetworkingHelper
+
+- (void)GET:(NSString *)URLString dict:(id)dict succeed:(void (^)(id data))succeed failure:(void (^)(NSError *error))failure{
+    
+    BOOL isLogin=[self isLoginWithUrl:URLString withDict:dict];
+    if (!isLogin) {
+        [self displayUnloginAlertView];
+        
+    }else{
+       // [self showRotationView];
+        //创建网络请求管理对象
+        AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
+        //申明返回的结果是json类型
+        manager.responseSerializer = [AFJSONResponseSerializer serializer];
+        //申明请求的数据是json类型
+        manager.requestSerializer = [AFJSONRequestSerializer serializer];
+        //如果报接受类型不一致请替换一致text/html或别的
+        manager.responseSerializer.acceptableContentTypes = [NSSet setWithObjects:@"application/json", nil];
+        [manager.requestSerializer setValue:userToken forHTTPHeaderField:@"token"];
+        //发送网络请求(请求方式为GET)
+        [manager GET:kBaseUrl(URLString) parameters:dict progress:^(NSProgress * _Nonnull downloadProgress) {
+            
+        } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+            succeed(responseObject);
+         //   [self.alertUtils hide];
+        } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+            failure(error);
+          //  [self.alertUtils hide];
+        }];
+    }
+}
+
+- (void)GET:(NSString *)URLString dict:(id)dict succeedData:(void (^)(id data))succeedData failure:(void (^)(NSError *error))failure{
+    
+    BOOL isLogin=[self isLoginWithUrl:URLString withDict:dict];
+    if (!isLogin) {
+        [self displayUnloginAlertView];
+        
+    }else{
+        //  [self showRotationView];
+        //创建网络请求管理对象
+        AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
+        //申明返回的结果是json类型
+        manager.responseSerializer = [AFJSONResponseSerializer serializer];
+        //申明请求的数据是json类型
+        manager.requestSerializer = [AFJSONRequestSerializer serializer];
+        //如果报接受类型不一致请替换一致text/html或别的
+        manager.responseSerializer.acceptableContentTypes = [NSSet setWithObjects:@"application/json", nil];
+        
+        [manager.requestSerializer setValue:userToken forHTTPHeaderField:@"token"];
+        
+        //发送网络请求(请求方式为GET)
+        [manager GET:kBaseUrl(URLString) parameters:dict progress:^(NSProgress * _Nonnull downloadProgress) {
+            
+        } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+            //  [self.alertUtils hide];
+            NSInteger num=[[responseObject objectForKey:@"state"] integerValue];
+            
+            if (num == 1) {
+                succeedData([responseObject objectForKey:@"values"]);
+            }else{
+                if(![URLString isEqualToString:@"Video/zanVideo"]){
+                    NSInteger errorCode = [[responseObject objectForKey:@"errno"] integerValue];
+                    [self errorMessageWithErrorCode:errorCode];
+                }
+            }
+        } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+            failure(error);
+            //  [self.alertUtils hide];
+            NSLog(@"%@",error);
+        }];
+    }
+}
+
+
+
+- (void)POST:(NSString *)URLString dict:(id)dict succeedData:(void (^)(id data))succeedData failure:(void (^)(NSError *error))failure{
+    BOOL isLogin=[self isLoginWithUrl:URLString withDict:dict];
+    if (!isLogin) {
+        [self displayUnloginAlertView];
+        
+    }else{
+        [self showRotationView];
+        
+        NSMutableData *postBody=[NSMutableData data];
+        NSString *postStr=[[NSString alloc] init];
+        NSArray *keyArray=[dict allKeys];
+        
+        for (int i=0; i<keyArray.count; i++) {
+            NSString *dictStr;
+            NSString *key=keyArray[i];
+            NSString *object=[dict objectForKey:key];
+            
+            if(i==keyArray.count-1){
+                dictStr=[postStr stringByAppendingString:[NSString stringWithFormat:@"%@=%@",key,object]];
+            }else{
+                dictStr=[postStr stringByAppendingString:[NSString stringWithFormat:@"%@=%@&",key,object]];
+            }
+            postStr=dictStr;
+        }
+        
+        [postBody appendData:[postStr dataUsingEncoding:NSUTF8StringEncoding]];
+        NSMutableURLRequest *request=[[NSMutableURLRequest alloc]initWithURL:[NSURL URLWithString:kBaseUrl(URLString)]
+                                                                 cachePolicy:NSURLRequestReloadIgnoringCacheData
+                                                             timeoutInterval:20.0f];
+        [request setHTTPMethod: @"POST"];
+        [request setValue: @"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
+        [request addValue:userToken forHTTPHeaderField:@"token"];
+        [request setHTTPBody:postBody];
+        NSError *error = nil;
+        NSHTTPURLResponse* urlResponse = nil;
+        NSData *responseData = [NSURLConnection sendSynchronousRequest:request
+                                                     returningResponse:&urlResponse error:&error];
+        NSString *result = [[NSString alloc] initWithData:responseData
+                                                 encoding:NSUTF8StringEncoding];
+        NSDictionary *jsonDic=[Utils dictionaryWithJsonString:result];
+        NSNumber *stateNum=[jsonDic objectForKey:@"state"];
+        if (stateNum.integerValue==1) {
+            [self.alertUtils hide];
+            succeedData([jsonDic objectForKey:@"values"]);
+        }else{
+            [self.alertUtils hide];
+            NSInteger errorCode = [[jsonDic objectForKey:@"errno"] integerValue];
+            [self errorMessageWithErrorCode:errorCode];
+            
+            NSLog(@"error:%@",error);
+        }
+        
+    }
+}
+
+
+- (void)POST:(NSString *)URLString dict:(id)dict succeed:(void (^)(id data))succeed failure:(void (^)(NSError *error))failure{
+    
+    BOOL isLogin=[self isLoginWithUrl:URLString withDict:dict];
+    if (!isLogin) {
+        [self displayUnloginAlertView];
+        
+    }else{
+        
+        [self showRotationView];
+        NSMutableData *postBody=[NSMutableData data];
+        NSString *postStr=[[NSString alloc] init];
+        NSArray *keyArray=[dict allKeys];
+        
+        for (int i=0; i<keyArray.count; i++) {
+            NSString *dictStr;
+            NSString *key=keyArray[i];
+            NSString *object=[dict objectForKey:key];
+            
+            if(i==keyArray.count-1){
+                dictStr=[postStr stringByAppendingString:[NSString stringWithFormat:@"%@=%@",key,object]];
+            }else{
+                dictStr=[postStr stringByAppendingString:[NSString stringWithFormat:@"%@=%@&",key,object]];
+            }
+            postStr=dictStr;
+        }
+        
+        [postBody appendData:[postStr dataUsingEncoding:NSUTF8StringEncoding]];
+        NSMutableURLRequest *request=[[NSMutableURLRequest alloc]initWithURL:[NSURL URLWithString:kBaseUrl(URLString)]
+                                                                 cachePolicy:NSURLRequestReloadIgnoringCacheData
+                                                             timeoutInterval:20.0f];
+        [request setHTTPMethod: @"POST"];
+        [request setValue: @"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
+        [request addValue:userToken forHTTPHeaderField:@"token"];
+        [request setHTTPBody:postBody];
+        NSError *error = nil;
+        NSHTTPURLResponse* urlResponse = nil;
+        NSData *responseData = [NSURLConnection sendSynchronousRequest:request
+                                                     returningResponse:&urlResponse error:&error];
+        NSString *result = [[NSString alloc] initWithData:responseData
+                                                 encoding:NSUTF8StringEncoding];
+        NSDictionary *jsonDic=[Utils dictionaryWithJsonString:result];
+        
+        succeed(jsonDic);
+        [self.alertUtils hide];
+    }
+}
+
+
+
+static NetworkingHelper *requestManager = nil;
++(NetworkingHelper *)shareINstance{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        if (requestManager == nil) {
+            requestManager=[[self alloc] init];
+        }
+    });
+    return requestManager;
+}
+
++(instancetype)allocWithZone:(struct _NSZone *)zone
+{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        if (requestManager == nil) {
+            requestManager = [super allocWithZone:zone];
+        }
+    });
+    return requestManager;
+}
+
+- (instancetype)copyWithZone:(NSZone *)zone
+{
+    return requestManager;
+}
+
+#pragma mark-使用方法
+//NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:<#(nonnull id), ...#>, nil nil];
+//NetworkingHelper *httpRequest = [NetworkingHelper sharedInstance];
+//[httpRequest GET:<#(NSString *)#> dict:dict succeed:^(id data) {
+//    NSLog(@"%@", data);
+//
+//} failure:^(NSError *error) {
+//    NSLog(@"%@", error);
+//}];
+
+
+-(void)errorMessageWithErrorCode:(NSInteger )errorCode{
+    
+    AlertView *alert=[AlertView instanceAlertView];
+    NSString *error=[ErrorCodeUtils getErrorTitleWithErrorCode:errorCode];
+    alert.describeLabel.text=[ErrorCodeUtils getErrorTitleWithErrorCode:errorCode];
+    alert.layer.cornerRadius=20;
+    AlertUtils *utils=[[AlertUtils alloc] init];
+    utils.contentView=alert;
+    [utils show];
+    
+    
+}
+
+//刚开始赋值为YES，如果判断未登录，是NO，直接跳出循环即可
+-(BOOL)isLoginWithUrl:(NSString *)url withDict:(NSDictionary *)dict{
+    BOOL isLogin=YES;
+    for (NSString *str in [ConfigModel shareConfigModel].tokenUrlArray) {
+        if ([str isEqualToString:url]) {
+            
+            NSArray *keysArray=[dict allKeys];
+            for (NSString *key in keysArray) {
+                if ([key isEqualToString:@"user_id"]||[key isEqualToString:@"share_id"]) {
+                    break;
+                }else{
+                    if (userToken == nil || [userToken isEqualToString:@""]) {
+                        isLogin=NO;
+                        break;
+                    }
+                }
+            }
+            
+            
+        }
+        
+    }
+    
+    return isLogin;
+}
+
+//弹出未登录界面
+-(void)displayUnloginAlertView{
+    
+    UnloginAlertView *unloginView=[UnloginAlertView initUnloginView];
+    unloginView.layer.cornerRadius=10;
+    unloginView.frame=CGRectMake(0, 0, 600/kPictureW*kScreenW, 536/kPictureH*kScreenH);
+    AlertUtils *utils=[[AlertUtils alloc] init];
+    utils.contentView=unloginView;
+    [utils show];
+
+}
+
+
+
+-(void)showRotationView{
+    RotationView *rotationView=[RotationView instanceRotationView];
+    rotationView.layer.cornerRadius=6.0;
+    [rotationView startAnimation];
+    rotationView.angle=0;
+    self.alertUtils.contentView=rotationView;
+    [self.alertUtils show];
+}
+
+-(AlertUtils *)alertUtils{
+    if (_alertUtils==nil) {
+        _alertUtils=[[AlertUtils alloc] init];
+    }
+    return _alertUtils;
+}
+@end

@@ -1,0 +1,13 @@
+//
+//  SearchTableViewCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/10/11.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "ShareSearshModel.h"
+@interface SearchTableViewCell : UITableViewCell
+@property (strong, nonatomic) ShareSearshModel *model;
+@end

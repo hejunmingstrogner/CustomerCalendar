@@ -1,0 +1,25 @@
+//
+//  FifthViewController.h
+//  VideoProject
+//
+//  Created by storm on 16/9/6.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface FifthViewController : UIViewController
+@property (weak, nonatomic) IBOutlet UILabel *nameLabel;
+@property (weak, nonatomic) IBOutlet UILabel *describeLabel;
+@property (weak, nonatomic) IBOutlet UIImageView *headImageView;
+@property (weak, nonatomic) IBOutlet UILabel *attentionNumLabel;
+@property (weak, nonatomic) IBOutlet UILabel *fansNumLabel;
+@property (weak, nonatomic) IBOutlet UILabel *inforamationNumLabel;
+
+@property (weak, nonatomic) IBOutlet UIView *bottomView;
+@property (weak, nonatomic) IBOutlet UIView *topView;
+@property (weak, nonatomic) IBOutlet UIView *centerView;
+@property (weak, nonatomic) IBOutlet UILabel *myVIdeoNumLabel;
+@property (weak, nonatomic) IBOutlet UILabel *myLoveNumLabel;
+@property (weak, nonatomic) IBOutlet UILabel *historyNumLabel;
+@end

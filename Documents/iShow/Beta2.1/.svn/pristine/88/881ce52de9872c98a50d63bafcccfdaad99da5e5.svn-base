@@ -1,0 +1,124 @@
+//
+//  VideoProject.pch
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/12.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#ifndef VideoProject_pch
+#define VideoProject_pch
+
+#ifdef __OBJC__
+
+//第三方登录头文件
+#import <ShareSDK/ShareSDK.h>
+#import <ShareSDKConnector/ShareSDKConnector.h>
+#import <TencentOpenAPI/QQApiInterface.h>
+#import <TencentOpenAPI/TencentOAuth.h>
+#import <ShareSDKUI/ShareSDK+SSUI.h>
+#import "WeiboSDK.h"
+
+
+#import "WXApi.h"
+#define kWeiXinAppId @"wx88a353820127817b"
+#define kWeiXinAppSecret @"acaf8026999d25246542d6434d6a2132"
+#define kWeiXinAccessToken @"WeiXinAccessToken"
+#define kWeiXinRefreshToken @"WeiXinRefreshToken"
+#define kAppDescription @"************"
+
+
+
+
+#import "UIView+CXExension.h"
+#import "ScrollView.h"
+#import "ConfigModel.h"
+#import "AlertUtils.h"
+#import "AlertView.h"
+#import "Utils.h"
+#import "Masonry.h"
+#import "NetworkingHelper.h"
+#import "MyButton.h"
+#import "UIImageView+WebCache.h"
+//#import "MJRefresh.h"
+#import <MJRefresh/MJRefresh.h>
+#import "UIImage+ImageTool.h"
+#import "ShareListModel.h"
+#import "ShareListRootModel.h"
+#import "ThemeListModel.h"
+#import "ThemeListRootModel.h"
+#import "ThemeDetailModel.h"
+#import "CategoryModel.h"
+#import "ShareModel.h"
+#import "ThemeModel.h"
+#import "TopicModel.h"
+#import "UserModel.h"
+#import "VideoModel.h"
+#import "ImageSize.h"
+#import "NavigationBarView.h"
+#import "FMDB.h"
+#import "BaseCell.h"
+#import "UnloginAlertView.h"
+#import "UIColor+colorCode.h"
+#import "BaseCollectionVIew.h"
+#import "ZKHYFmdbTool.h"
+//#import "VideoCollectionCell.h"
+#import "DetailViewController2.h"
+#import "BaseCollectionVIew.h"
+// Include any system framework and library headers here that should be included in all compilation units.
+// You will also need to set the Prefix Header build setting of one or more of your targets to reference this file.
+
+/**
+ *  弱引用
+ */
+#define WeakSelf __weak typeof(self) weakSelf = self;
+
+#define BXNoteCenter [NSNotificationCenter defaultCenter]
+
+#define kScreenH [UIScreen mainScreen].bounds.size.height
+#define kScreenW [UIScreen mainScreen].bounds.size.width
+
+#define kPictureW 750.0 //设计图纸的宽
+#define kPictureH 1334.0 //设计图纸的高
+#define TabBarHeight 49
+#define kScreenBounds [UIScreen mainScreen].bounds
+#define kKeyWindow [UIApplication sharedApplication].keyWindow
+#define kRandomHeight  200 + arc4random_uniform(60)
+#define kScrollHeight  kScreenH*330.0/kPictureH
+#define kDistanceHeightRatio kScreenH/kPictureH
+#define kDistanceWidthRatio kScreenW/kPictureW
+
+#define kCellBottomViewHeight 40 //cell的底部view高度
+#define kNavigationBarHeight 20+88.0/kPictureH*kScreenH;
+// 设置颜色
+#define kColor(r, g, b) [UIColor colorWithRed:(r)/255.0 green:(g)/255.0 blue:(b)/255.0 alpha:1.0]
+
+// 随机色
+#define kRandomColor kColor(arc4random_uniform(256), arc4random_uniform(256), arc4random_uniform(256))
+
+#define kBaseUrl(urlStr) [NSString stringWithFormat:@"http://a.ishowface.cn/%@",urlStr]
+#define kVideoBaseUrl(urlStr) [NSString stringWithFormat:@"http://v.ishowface.cn/%@",urlStr]
+#define kImageBaseUrl(urlStr) [NSString stringWithFormat:@"http://i.ishowface.cn/%@",urlStr]
+#define userToken [[NSUserDefaults standardUserDefaults] objectForKey:@"token"]
+#define saveUserToken(token) [[NSUserDefaults standardUserDefaults] setObject:[NSString stringWithFormat:@"%@",token] forKey:@"token"]
+#define saveUserId(user_id) [[NSUserDefaults standardUserDefaults] setObject:[NSString stringWithFormat:@"%@",user_id] forKey:@"myUserId"]
+#define myUserId [[NSUserDefaults standardUserDefaults] objectForKey:@"myUserId"]
+
+
+#define isFirstLogin(yes) [[NSUserDefaults standardUserDefaults] setBool:yes forKey:@"isFirstLogin"];
+#define readIsFirstLogin [[NSUserDefaults standardUserDefaults] boolForKey:@"isFirstLogin"];
+
+typedef enum ScrollviewAddBottom{
+    addBottom=0,
+    dontAddBottom,
+    
+}ScrollViewBottomView;
+
+
+
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+#endif
+
+
+#endif /* VideoProject_pch */

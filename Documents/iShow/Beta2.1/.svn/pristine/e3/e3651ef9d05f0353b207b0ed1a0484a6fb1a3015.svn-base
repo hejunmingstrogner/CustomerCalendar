@@ -1,0 +1,41 @@
+//
+//  MineInfoViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/22.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "MineInfoViewController.h"
+#import "CareFansInfoController.h"
+@interface MineInfoViewController ()
+
+@end
+
+@implementation MineInfoViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+}
+
+//评论
+- (IBAction)commentInfoBUttonClick:(id)sender {
+    CareFansInfoController *controller=[[CareFansInfoController alloc] init];
+    controller.barTextType=3;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+- (IBAction)myInfoButtonClick:(id)sender {
+    CareFansInfoController *controller=[[CareFansInfoController alloc] init];
+    controller.barTextType=2;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+
+
+@end

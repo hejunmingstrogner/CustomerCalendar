@@ -1,0 +1,13 @@
+
+platform :ios,'8.0'
+target :'VideoProject_0.1Beta' do
+pod 'SDWebImage'
+pod 'MJExtension'
+pod 'MJRefresh'
+pod 'FMDB'
+pod 'AFNetworking'
+pod 'JSONModel'
+pod 'MBProgressHUD'
+pod 'ZipArchive'
+end
+

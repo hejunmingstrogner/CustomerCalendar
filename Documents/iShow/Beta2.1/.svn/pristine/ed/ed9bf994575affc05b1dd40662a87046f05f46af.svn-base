@@ -1,0 +1,117 @@
+//
+//  SecondCellLayout.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/11/15.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "SecondCellLayout.h"
+#import "YYImage.h"
+@implementation SecondCellLayout
+
+-(void)setTweet:(ThemeListModel *)tweet{
+    if (_tweet != tweet) {
+        _tweet=tweet;
+        [self layout];
+    }
+}
+
+-(CGFloat)getImageHeightWithUrl:(NSString *)url withFrameWidth:(CGFloat)defineWidth{
+    UIImage *sourceImage=[YYImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:url]]];
+    CGFloat height=defineWidth * sourceImage.size.height/sourceImage.size.width;
+    return height;
+    
+    
+    
+}
+
+
+-(void)layout{
+    [self reset];
+    
+    _bigImageViewTop=0;
+    _bigImageViewHeight=[self getImageHeightWithUrl:_tweet.theme_image withFrameWidth:kScreenW];
+    _height += _bigImageViewHeight;
+
+//    UIFont *countTextFont=[UIFont systemFontOfSize:kCountTextFont];
+//    NSMutableAttributedString *countText=[[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@ 次制作",_tweet.theme_create_count]];
+//    countText.font=countTextFont;
+//    countText.color=kColor(128, 128, 128);
+//    countText.alignment=NSTextAlignmentLeft;
+//    _counteLableLayout=[YYTextLayout layoutWithContainerSize:CGSizeMake(kScreenW, 20) text:countText];
+//    _countLabelTop=_bigImageViewHeight-40;
+//    _countLabelHeight=40;
+    
+    
+    
+
+    
+    
+    
+    YYTextContainer *countContainer=[YYTextContainer containerWithSize:CGSizeMake(kScreenW-5, CGFLOAT_MAX)];
+    countContainer.insets=UIEdgeInsetsMake(0, kT1TextContainerInset, 0, kT1TextContainerInset);
+    _counteLableLayout=[YYTextLayout layoutWithContainer:countContainer text:[self countTextForTweet:_tweet]];
+    _countLabelTop=_bigImageViewHeight-40;
+    _countLabelHeight=40;
+    
+    
+    YYTextContainer *textContainer=[YYTextContainer containerWithSize:CGSizeMake(kScreenW-5, CGFLOAT_MAX)];
+    textContainer.insets=UIEdgeInsetsMake(0, kT1TextContainerInset, 0, kT1TextContainerInset);
+    _textLayout=[YYTextLayout layoutWithContainer:textContainer text:[self textForTweet:_tweet]];
+    
+    _textTop = _bigImageViewHeight + 5;
+    _textHeight = CGRectGetMaxY(_textLayout.textBoundingRect);
+    _height = _textTop + _textHeight;
+    
+    
+    YYTextContainer *priceTextContainer=[YYTextContainer containerWithSize:CGSizeMake(kScreenW-5, CGFLOAT_MAX)];
+    priceTextContainer.insets=UIEdgeInsetsMake(0, kT1TextContainerInset, 0, kT1TextContainerInset);
+    _priceLableLayout=[YYTextLayout layoutWithContainer:priceTextContainer text:[self priceTextForTweet:_tweet]];
+    _priceLabelTop=_textTop + _textHeight +5;
+    _priceLabelHeight=10;
+    
+    
+    _height += _priceLabelHeight + 10;
+}
+
+//文本内容
+- (NSAttributedString *)textForTweet:(ThemeListModel *)tweet{
+    NSMutableAttributedString *text=[[NSMutableAttributedString alloc] initWithString:tweet.theme_name];
+    text.font=[UIFont systemFontOfSize:kTextFontSize];
+    text.color=kColor(51, 51, 51);
+    return text;
+}
+
+- (NSAttributedString *)countTextForTweet:(ThemeListModel *)tweet{
+    NSMutableAttributedString *text=[[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@ 次制作",tweet.theme_create_count]];
+    text.font=[UIFont systemFontOfSize:kTextFontSize];
+    text.color=kColor(255, 255, 255);
+    return text;
+}
+- (NSAttributedString *)priceTextForTweet:(ThemeListModel *)tweet{
+    NSMutableAttributedString *text=[[NSMutableAttributedString alloc] initWithString:@"0 金币"];
+    text.font=[UIFont systemFontOfSize:kPriceTextFont];
+    text.color=kColor(254, 27, 98);
+    return text;
+}
+
+-(void)reset{
+    _height = 0;
+    _bigImageViewTop = 0;
+    _bigImageViewHeight = 0;
+    _textTop = 0;
+    _textHeight = 0;
+    
+    _countLabelTop=0;
+    _countLabelHeight=0;
+    
+    _priceLabelTop=0;
+    _priceLabelHeight=0;
+    
+    
+    _textLayout = nil;
+    _counteLableLayout = nil;
+    _priceLableLayout = nil;
+}
+@end

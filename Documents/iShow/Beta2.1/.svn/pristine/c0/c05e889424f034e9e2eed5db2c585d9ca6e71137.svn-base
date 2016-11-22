@@ -1,0 +1,13 @@
+//
+//  ShareVideosInfoModel.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/29.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "ShareVideosInfoModel.h"
+
+@implementation ShareVideosInfoModel
+
+@end

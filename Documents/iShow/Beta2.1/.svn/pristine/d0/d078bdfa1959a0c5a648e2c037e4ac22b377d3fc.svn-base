@@ -1,0 +1,73 @@
+//
+//  ConfigModel.m
+//  VideoProject_0.1Beta
+//
+//  Created by 徐琦 on 16/9/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "ConfigModel.h"
+
+@implementation ConfigModel
++(ConfigModel *)shareConfigModel{
+    static ConfigModel *configModel=nil;
+    @synchronized (self) {
+        if (!configModel) {
+            configModel=[[ConfigModel alloc] init];
+        }
+    }
+    return configModel;
+}
+
+-(void)judgeLoginState{
+    NSNotificationCenter *center=[NSNotificationCenter defaultCenter];
+    [center addObserver:self selector:@selector(judge) name:@"judgeLoginState" object:nil];
+}
+
+-(void)judge{
+    if ([userToken isEqualToString:@""]||userToken==nil) {
+        AlertUtils *utils=[[AlertUtils alloc] init];
+        AlertView *view=[AlertView instanceAlertView];
+        view.layer.cornerRadius=20;
+        view.describeLabel.text=@"没有播放历史可以清空";
+        utils.contentView=view;
+        [utils show];
+    }
+    
+   
+}
+
+-(XYVideoPlayerView *)videoPlayer{
+    if (_videoPlayer==nil) {
+        _videoPlayer=[[XYVideoPlayerView alloc] init];
+    }
+    return _videoPlayer;
+}
+
+-(NSArray *)tokenUrlArray{
+    if (_tokenUrlArray==nil) {
+
+        _tokenUrlArray=[NSArray arrayWithObjects:@"Share/getShareVideosInfo",@"Share/searchInfo",@"Share/getShareVideoInfo",@"Share/shareVideo",@"Share/delShareVideo",@"Theme/saveTheme",@"Topic/getTopicVideosInfo",@"Topic/createTopic",@"Video/zanVideo",@"Video/publishVideo",@"Video/delVideo",@"Video/getUserShares",@"Video/getUserVideos",@"User/getUserInfo",@"User/getUserShare",@"getUserSharesInfo",@"User/getUserZanVideos",@"getUserZanVideosInfo",@"User/getUserFans",@"User/getUserFollow",@"User/followUser",@"User/uploadAvatar",@"User/getUserStatistics",@"User/saveUser",@"User/cancelFollowUser",@"Comment/addComment",@"Comment/atMe",@"Comment/commentMy",@"Messages/feedback", nil];
+    }
+    return _tokenUrlArray;
+}
+
+-(void)showRotationView{
+    RotationView *rotationView=[RotationView instanceRotationView];
+    rotationView.layer.cornerRadius=6.0;
+    [rotationView startAnimation];
+    rotationView.angle=0;
+    self.alertUtils.contentView=rotationView;
+    [self.alertUtils show];
+}
+
+-(AlertUtils *)alertUtils{
+    if (_alertUtils==nil) {
+        _alertUtils=[[AlertUtils alloc] init];
+    }
+    return _alertUtils;
+}
+-(void)setToken:(NSString *)token{
+    _token=token;
+}
+@end

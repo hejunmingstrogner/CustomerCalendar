@@ -1,0 +1,44 @@
+//
+//  CityViewController.m
+//  VideoProject
+//
+//  Created by once_CH on 16/9/5.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "CityViewController.h"
+#import "testcontroller.h"
+@interface CityViewController ()
+@property (nonatomic ,strong )testcontroller *test;
+@end
+
+
+@implementation CityViewController
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor redColor];
+    UILabel *label = [[UILabel alloc]initWithFrame:CGRectMake(100, 100, 100, 100)];
+    label.text = @"安抚asfas";
+    [self.view addSubview:label];
+    
+    UIButton *but = [[UIButton alloc]initWithFrame:CGRectMake(100, 100, 100, 100)];
+    [but setTitle:@"next" forState:UIControlStateNormal];
+    [but addTarget:self action:@selector(testController) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:but];
+    
+    
+}
+- (void)testController {
+    _test = [[testcontroller alloc ]init];
+//    [self presentViewController:_test animated:NO completion:nil];
+    [self.navigationController pushViewController:_test animated:YES];
+    
+    
+    
+//    [self.navigationController popViewControllerAnimated:];
+//    self popoverPresentationCont
+//    [self.navigationController pushViewController:_test animated:YES];
+//    [self.navigationController popToViewController:_test animated:YES];
+}
+
+@end

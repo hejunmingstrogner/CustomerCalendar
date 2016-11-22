@@ -1,0 +1,13 @@
+//
+//  BaseSecoundCollectionView.h
+//  BaseCollection
+//
+//  Created by once_CH on 16/9/9.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface BaseSecoundCollectionView : UICollectionView
+@property (nonatomic , strong) NSMutableArray *CXDataSource;
+@end

@@ -1,0 +1,122 @@
+/*
+ Copyright(C) 2011-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#include "mediaCtrlIf.h"
+#import "writeMovie.h"
+#import "MpVideoDecoder.h"
+#import "VideoFrame.h"
+
+VideoDecoderWrp::VideoDecoderWrp(){;
+    mObj = (void*)CFBridgingRetain([[MpVideoDecorder alloc] init]);
+}
+void VideoDecoderWrp::setDataSource(const char *video)
+{
+    __weak MpVideoDecorder* dec =  (__bridge MpVideoDecorder*)mObj;
+    [dec SetDataSource:[NSString stringWithUTF8String:video]];
+}
+int VideoDecoderWrp::getDuration()
+{
+    __weak MpVideoDecorder* dec =  (__bridge MpVideoDecorder*)mObj;
+    return [dec GetDuration];
+}
+
+int VideoDecoderWrp::getFps()
+{
+    __weak MpVideoDecorder* dec =  (__bridge MpVideoDecorder*)mObj;
+    return [dec GetFps];
+}
+
+void VideoDecoderWrp::setOffset(int msec)
+{
+    __weak MpVideoDecorder* dec =  (__bridge MpVideoDecorder*)mObj;
+    [dec SetOffset:msec];
+}
+
+void VideoDecoderWrp::startReadMovie()
+{
+   __weak MpVideoDecorder* dec =  (__bridge MpVideoDecorder*)mObj;
+    [dec Prepare];
+    [dec Play];
+}
+void VideoDecoderWrp::stopReadMovie()
+{
+    __weak MpVideoDecorder* dec =  (__bridge MpVideoDecorder*)mObj;
+    [dec Stop];
+}
+unsigned char *VideoDecoderWrp::getImageBuffer()
+{
+    __weak MpVideoDecorder* dec =  (__bridge MpVideoDecorder*)mObj;
+    VideoFrame *frame = [dec GetVideoFrame];
+    if(frame != nil){
+        mFrame = (void*)CFBridgingRetain(frame);
+        return [frame getRawData];
+    }else{
+        return NULL;
+    }
+}
+
+bool VideoDecoderWrp::isPlaying()
+{
+    __weak MpVideoDecorder* dec = (__bridge MpVideoDecorder*)mObj;
+    return [dec IsPlaying];
+}
+
+
+int VideoDecoderWrp::getFrameNo()
+{
+    __weak VideoFrame *frame = (__bridge VideoFrame*)mFrame;
+    return [frame getFrameNo];
+}
+
+void VideoDecoderWrp::releaseImageBuffer()
+{
+    __weak MpVideoDecorder* dec =  (__bridge MpVideoDecorder*)mObj;
+    if(mFrame != NULL){
+        __weak VideoFrame *frame = (__bridge VideoFrame*)mFrame;
+        [dec ReleaseVideoFrame:frame];
+        CFRelease(mFrame);
+        mFrame = NULL;
+    }
+}
+
+VideoDecoderWrp::~VideoDecoderWrp()
+{
+    CFRelease(mObj);
+}
+
+
+writeMovieWrp::writeMovieWrp(){
+    mObj = (void*)CFBridgingRetain([[writeMovie alloc] init]);
+}
+bool writeMovieWrp::startWriteMovie(const char* video, int width, int height, int fps, int bitrate)
+{
+    __weak writeMovie* writeObj = (__bridge writeMovie*)mObj;
+    NSString *nsVideo = [NSString stringWithUTF8String:video];
+    return [writeObj startWriteMovie:nsVideo width:width height:height fps:fps bitrate:bitrate];
+}
+bool writeMovieWrp::appendFrame(unsigned char* img, int width, int height, bool block)
+{
+    __weak writeMovie* writeObj = (__bridge writeMovie*)mObj;
+    return [writeObj appendFrame:img width:width height:height block:block];
+}
+
+void writeMovieWrp::finish()
+{
+    __weak writeMovie* writeObj = (__bridge writeMovie*)mObj;
+    [writeObj finish];
+}
+
+bool writeMovieWrp::addAudio(const char *video, const char *audio, const char *media)
+{
+    NSString *nsVideo = [NSString stringWithUTF8String:video];
+    NSString *nsAudio = [NSString stringWithUTF8String:audio];
+    NSString *nsMedia = [NSString stringWithUTF8String:media];
+    __weak writeMovie* writeObj = (__bridge writeMovie*)mObj;
+   return [writeObj addAudio:nsVideo audio:nsAudio outVideo:nsMedia];
+}
+
+writeMovieWrp::~writeMovieWrp()
+{
+    CFRelease(mObj);
+}

@@ -1,0 +1,23 @@
+//
+//  BaseCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/11/3.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface BaseCell : UICollectionViewCell
+@property (nonatomic , strong) ShareVideosInfoModel *model;
+
+@property (weak, nonatomic) IBOutlet UILabel *titleLabel;
+@property (strong, nonatomic) IBOutlet UIImageView *headerImageView;
+@property (strong, nonatomic) IBOutlet UIImageView *titleImageView;
+@property (weak, nonatomic) IBOutlet UIView *bottomView;
+@property (weak, nonatomic) IBOutlet UILabel *nameLabel;
+@property (weak, nonatomic) IBOutlet UILabel *upCountLabel;
+@property (weak, nonatomic) IBOutlet UIView *lineView;
+@property (weak, nonatomic) IBOutlet UIImageView *upImageView;
+
+@end

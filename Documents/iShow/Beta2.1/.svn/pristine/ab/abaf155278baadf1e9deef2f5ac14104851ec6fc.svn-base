@@ -1,0 +1,13 @@
+//
+//  MakeViewController.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/13.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface MakeViewController : UIViewController
+@property (nonatomic,strong ) NSString  *theme_id;
+@end

@@ -1,0 +1,252 @@
+//
+//  AppDelegate.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/12.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "AppDelegate.h"
+#import "BasicTabBarController.h"
+#import "SharePlatformView.h"
+#import "VideoRecordedViewController.h"
+#import "ImagePickerController.h"
+#import "TZImagePickerController.h"
+//#import "aViewController.h"
+
+#define BTN_NUMBER 5
+#define ADDBTN_ORIGIN_X 2
+#define PC_NAVIGATIONBAR_ADD_STATUSBAR_H 64
+#define PC_TABBAR_HEIGHT 49
+
+@interface AppDelegate ()<SharePlatformViewDelegate>
+/*!  中间的button    */
+@property (nonatomic,strong) UIButton *addBtn;
+@property (strong, nonatomic) BasicTabBarController *tabVC;
+@end
+
+@implementation AppDelegate
+
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    // Override point for customization after application launch.
+ 
+    self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    self.window.backgroundColor = [UIColor whiteColor];
+    [self.window makeKeyAndVisible];
+    
+    _tabVC = [[BasicTabBarController alloc] init];
+    
+    
+//    CGFloat framev= tabVC.tabBar.frame.size.height;
+    self.window.rootViewController = _tabVC;
+    
+    
+    //中间按钮
+    // 初始化按钮
+    _addBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    [_addBtn addTarget:self action:@selector(addBtnClilked:) forControlEvents:UIControlEventTouchUpInside];
+    
+    // 获得tabBar的宽度
+//    CGFloat screenW = [UIScreen mainScreen].bounds.size.width;
+    // 计算按钮的宽度
+    CGFloat btnW = kScreenW > 330 ? -2 :0;
+//    _addBtn.frame = CGRectMake(btnW * ADDBTN_ORIGIN_X , -kScreenH/184.f , btnW , PC_TABBAR_HEIGHT);
+    _addBtn.frame = CGRectMake((kScreenW-kScreenW /(375/49.f))/2.0, btnW, kScreenW /(375/49.f), kScreenW /(375/49.f));
+    
+    // 设置图片
+    [_addBtn setImage:[UIImage imageNamed:@"shooting"] forState:UIControlStateNormal];
+    
+    //取消点击效果
+    _addBtn.adjustsImageWhenHighlighted = NO;
+    // 添加到标签栏
+    [_tabVC.tabBar addSubview:_addBtn];
+    
+    _tabVC.tabBar.shadowImage = [UIImage new];
+    _tabVC.tabBar.backgroundImage =[UIImage new];
+    UIImageView * imageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, _tabVC.tabBar.frame.size.width, _tabVC.tabBar.frame.size.height)];
+//    imageView.clipsToBounds = YES;
+    imageView.image = [UIImage imageNamed:@"tabbar"];
+    imageView.contentMode = UIViewContentModeScaleAspectFill;
+    [_tabVC.tabBar insertSubview:imageView atIndex:0];
+    
+    [[UINavigationBar appearance] setTitleTextAttributes: [NSDictionary dictionaryWithObjectsAndKeys:
+                                                           [UIColor blackColor], NSForegroundColorAttributeName, [UIFont systemFontOfSize:18], NSFontAttributeName, nil]];
+    
+    [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent];
+    
+    
+    //设置第三方登录分享
+    [ShareSDK registerApp:@"i456" activePlatforms:@[@(SSDKPlatformTypeQQ),@(SSDKPlatformTypeSinaWeibo)] onImport:^(SSDKPlatformType platformType) {
+        switch (platformType) {
+            case SSDKPlatformTypeQQ:
+                [ShareSDKConnector connectQQ:[QQApiInterface class] tencentOAuthClass:[TencentOAuth class]];
+                break;
+             case SSDKPlatformTypeSinaWeibo:
+                [ShareSDKConnector connectWeibo:[WeiboSDK class]];
+                break;
+            default:
+                break;
+        }
+    } onConfiguration:^(SSDKPlatformType platformType, NSMutableDictionary *appInfo) {
+        switch (platformType) {
+            case SSDKPlatformTypeQQ:
+                [appInfo SSDKSetupQQByAppId:@"1105798414" appKey:@"sAt8sF2zRI1Q0Bd1" authType:SSDKAuthTypeBoth];
+                break;
+            case SSDKPlatformTypeSinaWeibo:
+                [appInfo SSDKSetupSinaWeiboByAppKey:@"2143557738" appSecret:@"2fc434d1581b403f9f797ba0a16477dd" redirectUri:@"http://www.sharesdk.cn" authType:SSDKAuthTypeBoth];
+                break;
+            default:
+                break;
+        }
+    }];
+    
+    //微信分享
+     [WXApi registerApp:kWeiXinAppId withDescription:@"i456"];
+    
+    return YES;
+}
+//按钮的点击回调事件
+- (void)addBtnClilked:(UIButton *)sender {
+    
+    NSArray *imageArray = @[@"shot",@"upload"];
+    SharePlatformView *shareView = [[SharePlatformView alloc]initWithFrame:CGRectMake(0, 0, kScreenW, kScreenH) ImageArray:imageArray didShareButtonBlock:^(NSInteger tag) {
+        if (tag==0) {
+
+        }
+    }];
+    shareView.delegate = self;
+    [shareView show];
+}
+
+
+#pragma mark--微信登录分享
+-(void)onResp:(BaseResp *)resp{
+    if ([resp isKindOfClass:[SendAuthResp class]]) {
+        if (resp.errCode == WXSuccess) {
+            NSLog(@"同意登录。");
+            SendAuthResp *authorResp=(SendAuthResp *)resp;
+            NSLog(@"respCode:%@",authorResp.code);
+            [self getWeixinUserNameWithCode:authorResp.code];
+        }else if (resp.errCode == WXErrCodeAuthDeny){
+            NSLog(@"失败。");
+        }else if (resp.errCode == WXErrCodeUserCancel){
+             NSLog(@"取消。");
+        }
+    }
+}
+
+-(void)getWeixinUserNameWithCode:(NSString *)code{
+    
+    
+    
+    NSString *url =[NSString stringWithFormat:@"https://api.weixin.qq.com/sns/oauth2/access_token?appid=%@&secret=%@&code=%@&grant_type=authorization_code",kWeiXinAppId,kWeiXinAppSecret,code];
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSURL *zoneUrl = [NSURL URLWithString:url];
+        NSString *zoneStr = [NSString stringWithContentsOfURL:zoneUrl encoding:NSUTF8StringEncoding error:nil];
+        NSData *data = [zoneStr dataUsingEncoding:NSUTF8StringEncoding];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (data)
+            {
+                NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
+                NSLog(@"%@",dic);
+                NSString *accessToken = [dic objectForKey:@"access_token"];
+                NSString *openID = [dic objectForKey:@"openid"];
+                NSString *refreshToken=[dic objectForKey:@"refresh_token"];
+                //[self getWeixinUserInfoWithAppID:openID accessToke:accessToken refreshToken:refreshToken];
+                [self getWeixinUserInfoWithAppID:openID accessToken:accessToken refreshToken:refreshToken];
+                
+                
+            }
+        });
+    });
+    
+    
+}
+
+
+-(void)getWeixinUserInfoWithAppID:(NSString *)openID accessToken:(NSString *)accessToken refreshToken:(NSString *)refreshToken{
+    NSString *url=[NSString stringWithFormat:@"https://api.weixin.qq.com/sns/userinfo?access_token=%@&openid=%@",accessToken,openID];
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSURL *zoneUrl = [NSURL URLWithString:url];
+        NSString *zoneStr = [NSString stringWithContentsOfURL:zoneUrl encoding:NSUTF8StringEncoding error:nil];
+        NSData *data = [zoneStr dataUsingEncoding:NSUTF8StringEncoding];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (data)
+            {
+                NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
+                
+              //  [markManager shareMarkManager].userName=[dic objectForKey:@"nickname"];
+            }
+        });
+    });
+    
+}
+
+#pragma  mark -- SharePlatformViewDelegate
+-(void)respondsToPhoto{
+    
+//    [_tabVC  presentViewController:[[aViewController alloc]init] animated:YES completion:nil];
+    
+    
+//    NSLog(@"--2");
+    VideoRecordedViewController *controller=[[VideoRecordedViewController alloc] init];
+//    UINavigationController *na = [[UINavigationController alloc]initWithRootViewController:controller];
+    
+    [_tabVC presentViewController:controller animated:NO completion:nil];
+    
+}
+//中间页面按钮的相应方法
+- (void)uploading {
+//    NSLog(@"-1");
+    TZImagePickerController *imagePickerVc = [[TZImagePickerController alloc] initWithMaxImagesCount:1 columnNumber:3 delegate:nil pushPhotoPickerVc:YES];
+    imagePickerVc.sortAscendingByModificationDate = YES;
+    imagePickerVc.allowPickingVideo = YES;
+    imagePickerVc.allowPickingImage = NO;
+//    UINavigationController *na = [[UINavigationController alloc]initWithRootViewController:imagePickerVc];
+    [_tabVC presentViewController:imagePickerVc animated:YES completion:nil];
+    
+}
+
+- (void)atlas {
+//    ImagePickerController *imagePicker = [[ImagePickerController alloc]init];
+//    TZImagePickerController *imagePickerVc = [[TZImagePickerController alloc] initWithMaxImagesCount:9 columnNumber:3 delegate:nil pushPhotoPickerVc:YES];
+//    imagePickerVc.allowPickingVideo = NO;
+//    imagePickerVc.sortAscendingByModificationDate = YES;
+//    
+//    [_tabVC presentViewController:imagePickerVc animated:YES completion:nil];
+//    [kKeyWindow.rootViewController presentViewController:imagePicker animated:YES completion:NO];
+    
+//    NSLog(@"---3");
+}
+
+-(NSUInteger)application:(UIApplication *)application supportedInterfaceOrientationsForWindow:(UIWindow *)window{
+    return UIInterfaceOrientationMaskPortrait;
+}
+
+
+- (void)applicationWillResignActive:(UIApplication *)application {
+    // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
+    // Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
+}
+
+- (void)applicationDidEnterBackground:(UIApplication *)application {
+    // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
+    // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+}
+
+- (void)applicationWillEnterForeground:(UIApplication *)application {
+    // Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application {
+    // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+}
+
+- (void)applicationWillTerminate:(UIApplication *)application {
+    // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+}
+
+@end

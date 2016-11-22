@@ -1,0 +1,28 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#import <Foundation/Foundation.h>
+#import "VideoFrame.h"
+
+@interface MpVideoDecorder : NSObject
+
+@property (nonatomic, readonly) NSArray *videoTracks;
+@property (nonatomic, readonly) NSArray *audioTracks;
+
+
+- (void)SetDataSource:(NSString *)path;
+- (void)Prepare;
+- (void)Pause;
+- (void)UnPause;
+- (void)SetOffset:(int)msec;
+- (void)Play;
+- (void)Stop;
+- (int)GetDuration;
+- (int)GetFps;
+- (BOOL)IsPlaying;
+
+- (VideoFrame*)GetVideoFrame;
+- (void)ReleaseVideoFrame:(VideoFrame*)frame;
+
+@end

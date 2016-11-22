@@ -1,0 +1,19 @@
+//
+//  ImageSize.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/30.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface ImageSize : NSObject
+// 单例类
++ (instancetype)sharedImageSize;
+
+// 计算网络图片的尺寸
++ (CGSize)dowmLoadImageSizeWithURL:(id)imageURL;
+
+
+@end

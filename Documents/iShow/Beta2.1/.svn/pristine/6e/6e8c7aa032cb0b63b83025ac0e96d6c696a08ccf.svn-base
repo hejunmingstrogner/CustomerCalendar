@@ -1,0 +1,62 @@
+//
+//  BaseCollectionVIew.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/11/7.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "MUCollectionViewFlowLayout.h"
+#import "ShareListRootModel.h"
+#import "UIImage+MultiFormat.h"
+#import "BannerModel.h"
+#import "BannerRootModel.h"
+#import "SecondCollectionCell.h"
+#import "VideoCollectionCell.h"
+//typedef enum ControllerVideoType {
+//    
+//    myVideoController=0,
+//    favoriteVideoCOntroller,
+//    playHistoryController,
+//    defaultController,
+//} CYControllerType;
+
+typedef enum cellType{
+    baseCell=0,
+    secondCell,
+}CellStyleType;
+
+@protocol CellDidSelectDelegate <NSObject>
+
+-(void)cellDidSelectedWithShareModel:(ShareVideosInfoModel *)model;
+-(void)cellDidSelectedWithThemeModel:(ThemeListModel *)model;
+@end
+
+
+
+@interface BaseCollectionVIew : UICollectionView<UICollectionViewDelegate,UICollectionViewDataSource,MUCollectionViewFlowLayoutDelegate,StatusCellDelegate,BaseStatusCellDelegate>
+
+@property (nonatomic) CellStyleType cellType;//cell的类型
+@property (nonatomic , assign) int total;
+@property (nonatomic ,strong) ScrollView *scrollView;
+
+
+@property (nonatomic, assign) NSString *urlString;//接口参数
+@property (nonatomic, strong) NSDictionary *bannerDict;//banner参数
+@property (nonatomic, assign) NSString *paraDic;//接口参数
+
+@property (nonatomic ,strong) NSMutableArray *bannerArray;
+@property (nonatomic ,strong) NSMutableArray *array;
+@property (nonatomic, strong) NSMutableArray *imagesHeightArray;
+@property (nonatomic, strong) NSMutableArray *textHeightsArray;
+@property (nonatomic,strong)NSMutableArray * heightArray;// 存储图片高度的数组
+@property (nonatomic,strong)UIImage * image; // 如果计算图片尺寸失败  则下载图片直接计算
+@property (nonatomic, assign) int pageCount;
+
+@property (nonatomic, assign) BOOL updating;//判断collectionView是否在刷新
+
+@property (strong, nonatomic) NSString *cat_id;
+@property (nonatomic, weak) id<CellDidSelectDelegate> cellDelegate;
+-(void)loadDataSource;
+@end

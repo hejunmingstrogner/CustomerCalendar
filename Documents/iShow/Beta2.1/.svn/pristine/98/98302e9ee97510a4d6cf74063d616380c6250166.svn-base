@@ -1,0 +1,21 @@
+//
+//  DetailViewController2.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/18.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "ShareInfoRootModel.h"
+#import "XYVideoPlayerView.h"
+@interface DetailViewController2 : UIViewController
+@property (nonatomic , strong) ShareInfoRootModel *RootModel;
+//@property (nonatomic , assign) int share_id;
+@property (nonatomic, strong) NSDictionary *parameterDic;
+@property (nonatomic, copy) NSString *parameterUrl;
+@property (nonatomic, strong) XYVideoPlayerView *videPlayer;
+@property (nonatomic , strong) NSMutableArray *dataSource;
+@property (nonatomic, assign) NSInteger historyIndex;//历史记录的indexpath
+@property (nonatomic, copy) NSString *controllerType;
+@end

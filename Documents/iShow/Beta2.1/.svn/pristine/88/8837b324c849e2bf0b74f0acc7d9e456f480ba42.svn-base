@@ -1,0 +1,156 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+#include "faceOrder.h"
+#include "MpMovieTypes.h"
+#include "MpLog.h"
+
+#define FILE_LINE_SIZE (64)
+
+faceOrder::~faceOrder()
+{
+    clearOrderList();
+}
+
+
+bool faceOrder::setOrderList(const char *file, int numOfFace)
+{
+    char readline[FILE_LINE_SIZE];
+    if(numOfFace < 1){
+        return false;
+    }
+    
+    clearOrderList();
+    
+    FILE *fp = fopen(file, "rb");
+    if(fp == NULL){
+        return false;
+    }
+    
+    mNumOfFace = numOfFace;
+    mListPosition = 0;
+    
+    while(fgets(readline, FILE_LINE_SIZE, fp) != NULL ) {
+        int framenum;
+        int face[MAX_FACE_NUM]; // total MAX_FACE_NUM
+        int n = sscanf(readline, "%d %d %d %d %d", &framenum, &face[0], &face[1], &face[2], &face[3]);
+        if(n != numOfFace + 1){
+            fclose(fp);
+            clearOrderList();
+            return false;
+        }
+        orderInfo *info = new orderInfo();
+        info->mOrderArray = new int[numOfFace];
+        info->mFrameNum = framenum;
+        for(int i = 0; i < numOfFace; i++){
+            info->mOrderArray[i] = face[i];
+        }
+        mOrderList.push_back(info);
+    }
+    
+    fclose(fp);
+    
+#ifdef MP_DEBUG
+    dumpOrderList();
+#endif
+    
+    return true;
+}
+
+bool faceOrder::getCurrentOrder(int frame, int* order)
+{
+    if(order == NULL){
+        return false;
+    }
+    
+    if(mOrderList.empty()){
+        return false;
+    }
+    
+    orderInfo *begin = mOrderList.at(0);
+    if(frame < begin->mFrameNum){
+        return false;
+    }
+    orderInfo *last = mOrderList.at(mOrderList.size()-1);
+    if(frame > last->mFrameNum){
+        memcpy(order, last->mOrderArray, mNumOfFace*sizeof(int));
+        return true;
+    }
+    
+checkFrame:
+    orderInfo *currentInfo = mOrderList.at(mListPosition);
+    if(frame >= currentInfo->mFrameNum){
+        if(mListPosition < mOrderList.size() - 1){
+            orderInfo *nextInfo = mOrderList.at(mListPosition + 1);
+            if(frame < nextInfo->mFrameNum){
+                //printf("####### find Next %d %d<->%d\n", frame, currentInfo->mFrameNum, nextInfo->mFrameNum);
+                memcpy(order, currentInfo->mOrderArray, mNumOfFace*sizeof(int));
+                return true;
+            }else{
+                mListPosition += 1;
+                goto checkFrame;
+            }
+        }else{
+            // Should never come
+            return false;
+        }
+    }else{
+        if(mListPosition > 0){
+            orderInfo *prevInfo = mOrderList.at(mListPosition);
+            if(frame >= prevInfo->mFrameNum){
+                //printf("####### find Prev %d %d<->%d\n", frame, prevInfo->mFrameNum, currentInfo->mFrameNum);
+                memcpy(order, currentInfo->mOrderArray, mNumOfFace*sizeof(int));
+                return true;
+            }else{
+                mListPosition -= 1;
+                goto checkFrame;
+            }
+        }else{
+            // Should never come
+            return false;
+        }
+    }
+    return false;
+}
+
+// no need to use this method
+/*
+void faceOrder::setOffset(int frame)
+{
+    MpLog(kInfo, "faceOrder::%s %d\n", __func__, frame);
+    if(mOrderList.empty()){
+        return ;
+    }
+    
+    std::vector<orderInfo*>::iterator it = mOrderList.begin();
+    mListPosition = 0;
+    while(true){
+        orderInfo *info = *it;
+        if(frame < info->mFrameNum){
+            if(mListPosition > 0){
+                mListPosition -= 1;
+            }
+            MpLog(kDebug, "Position is set to %d (%d <-> %d)\n", mListPosition, frame, info->mFrameNum);
+            break;
+        }
+        it++;
+        if(it == mOrderList.end()){
+            MpLog(kDebug, "List is over. mListPosition should be end of list\n");
+            break;
+        }
+        mListPosition++;
+    }
+}
+*/
+ 
+void faceOrder::clearOrderList()
+{
+    while(!mOrderList.empty()){
+        orderInfo *info = mOrderList.back();
+        if(info->mOrderArray != NULL){
+            delete info->mOrderArray;
+        }
+        delete info;
+        mOrderList.pop_back();
+	}
+}

@@ -1,0 +1,178 @@
+//
+//  FourthlyViewController.m
+//  VideoProject
+//
+//  Created by once_CH on 16/9/5.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "FourthlyViewController.h"
+#import "UIView+CXExension.h"
+//#import "ZCYInterestViewController.h"
+//#import "ZCYRecommendViewController.h"
+#import "GetShareCatsRootModel.h"
+#import "GetShareCatsModel.h"
+#import "TableViewBaseController.h"
+@interface FourthlyViewController ()
+/** 标签栏底部的红色指示器 */
+@property (nonatomic, strong) UIView *indicatorView;
+/** 当前选中的按钮 */
+@property (nonatomic, strong) UIButton *selectedButton;
+/** 顶部的所有标签 */
+@property (nonatomic, strong) UIView *titlesView;
+@property (nonatomic, strong) NSArray *titleArray;
+@property (strong, nonatomic) NSMutableArray *dataSource;
+@end
+
+
+
+@implementation FourthlyViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    _dataSource = [NSMutableArray array];
+    [self initializeUserSource];
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    UILabel *titleText = [[UILabel alloc] initWithFrame: CGRectMake(kScreenW/2.0-20, 0, 80, 88.0/kPictureH*kScreenH)];//allocate titleText
+    titleText.backgroundColor = [UIColor clearColor];
+    [titleText setText:@"发现"];
+    self.navigationItem.titleView=titleText;
+}
+- (void)initializeUserSource {
+    
+    [[NetworkingHelper shareINstance] GET:@"Topic/getTopicCats" dict:nil succeedData:^(id data) {
+//        NSLog(@"%@",data);
+        GetShareCatsRootModel *rootModel = [[GetShareCatsRootModel alloc]initWithDictionary:data error:nil];
+        [_dataSource addObjectsFromArray:rootModel.list];
+        [self setupChildViewController];
+    
+    } failure:^(NSError *error) {
+        NSLog(@"%@",error);
+    }];
+}
+
+- (void)setupChildViewController {
+    for (int i = 0; i <self.dataSource.count; i ++) {
+        TableViewBaseController *baseVC = [[TableViewBaseController alloc]init];
+        [self.viewControllers addObject:baseVC];
+    }
+    [self.view addSubview:self.switchBackgroundView];
+
+    [self setupTitlesView];
+}
+
+/**
+ * 设置顶部的标签栏
+ */
+- (void)setupTitlesView
+{
+    // 标签栏整体
+    UIView *titlesView = [[UIView alloc] init];
+    
+    titlesView.backgroundColor = [kColor(248, 248, 248) colorWithAlphaComponent:1.0];
+    titlesView.width = self.view.width;
+    
+    titlesView.height = 68.0*kDistanceHeightRatio;
+    titlesView.y = kNavigationBarHeight;
+    [self.view addSubview:titlesView];
+    self.titlesView = titlesView;
+    
+    // 底部的红色指示器
+    UIView *indicatorView = [[UIView alloc] init];
+    indicatorView.backgroundColor = kColor(254, 27, 98);
+    indicatorView.height = 2.0*kDistanceHeightRatio;
+    indicatorView.tag = -1;
+    indicatorView.y = titlesView.height - 8.0*kDistanceHeightRatio;
+    self.indicatorView = indicatorView;
+    // 内部的子标签
+    CGFloat width = titlesView.width / self.viewControllers.count;
+    CGFloat height = titlesView.height;
+    for (NSInteger i = 0; i<self.dataSource.count; i++) {
+        UIButton *button = [[UIButton alloc] init];
+        button.tag = i;
+        button.height = height;
+        button.width = width;
+        button.y= 0 ;
+        button.x = i * width;
+        GetShareCatsModel *model = self.dataSource[i];
+        NSString *title = [NSString stringWithFormat:@"%@",model.cat_name];
+        [button setTitle:title forState:UIControlStateNormal];
+        //        button.titleLabel.font = [UIFont systemFontOfSize:22];
+        [button setTitleColor:kColor(128, 128, 128) forState:UIControlStateNormal];
+        //        button.titleLabel.font = [UIFont systemFontOfSize:40];
+        [button setTitleColor:kColor(254, 27, 98) forState:UIControlStateDisabled];
+        button.titleLabel.font = [UIFont systemFontOfSize:15];
+        [button addTarget:self action:@selector(titleClick:) forControlEvents:UIControlEventTouchUpInside];
+        [titlesView addSubview:button];
+        
+        // 默认点击了第一个按钮
+        if (i == 0) {
+            button.enabled = NO;
+            self.selectedButton = button;
+            // 让按钮内部的label根据文字内容来计算尺寸
+            [button.titleLabel sizeToFit];
+            self.indicatorView.width = button.titleLabel.width*1.5;
+            self.indicatorView.centerX = button.centerX;
+        }
+    }
+    [titlesView addSubview:indicatorView];
+}
+
+- (void)titleClick:(UIButton *)button
+{
+    [self buttonStateChange:button];
+    // 滚动
+    [self setShowingIndex:button.tag animate:YES];
+}
+
+- (void)buttonStateChange:(UIButton *)button
+{
+    // 修改按钮状态
+    self.selectedButton.enabled = YES;
+    button.enabled = NO;
+    self.selectedButton = button;
+    [UIView animateWithDuration:0.25 animations:^{
+        self.indicatorView.width = button.titleLabel.width;
+        self.indicatorView.centerX = button.centerX;
+    }];
+    
+}
+
+#pragma mark -SJSwitchViewControllerDelegate
+
+- (NSInteger)numberOfSwitchViewController
+{
+    return self.viewControllers.count;
+}
+
+- (UIViewController *)switchViewControllerDidGetViewControllerAtIndex:(NSUInteger)index
+{
+    TableViewBaseController *vc = self.viewControllers[index];
+    GetShareCatsModel *model = self.dataSource[index];
+    vc.cat_id = model.cat_id;
+
+    return vc;
+}
+
+-(void)switchViewControllerDidStopAtIndex:(NSInteger)index
+{
+    UIButton *button = self.titlesView.subviews[index];
+    [self buttonStateChange:button];
+}
+//- (NSArray *)titleArray {
+//    if (!_titleArray) {
+//        _titleArray = @[@"推荐",@"趣味"];
+//    }
+//    return _titleArray;
+//}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    
+}
+
+-(void)viewWillDisappear:(BOOL)animated{
+    [super viewWillDisappear:animated];
+    
+}
+@end

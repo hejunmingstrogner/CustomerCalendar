@@ -1,0 +1,12 @@
+
+
+#import <UIKit/UIKit.h>
+#import <IJKMediaFramework/IJKMediaFramework.h>
+
+@interface PlayerView : UIView
+@property (atomic,strong) NSURL *videoURL;
+@property (atomic, retain) id <IJKMediaPlayback> player;
+@property (weak, nonatomic) UIView *PlayerView;
+
+-(UIView *)initVideoViewWithViderUrl:(NSString *)url;
+@end

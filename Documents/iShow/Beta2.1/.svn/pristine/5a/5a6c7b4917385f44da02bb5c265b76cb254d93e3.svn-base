@@ -1,0 +1,81 @@
+//
+//  MineViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/24.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "MineViewController.h"
+#import "UnloginFifthViewController.h"
+#import "FifthViewController.h"
+@interface MineViewController ()
+
+@end
+
+@implementation MineViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(userTokenChanged) name:@"userTokenChanged" object:nil];
+    
+    UILabel *titleText = [[UILabel alloc] initWithFrame: CGRectMake(kScreenW/2.0-20, 0, 80, 88.0/kPictureH*kScreenH)];//allocate titleText
+    titleText.backgroundColor = [UIColor clearColor];
+    [titleText setText:@"我的"];
+    self.navigationItem.titleView=titleText;
+    //  [ConfigModel shareConfigModel].isMine=YES;
+    
+}
+
+
+
+
+
+-(void)viewWillAppear:(BOOL)animated{
+    [self initView];
+    
+    
+}
+
+-(void)viewWillDisappear:(BOOL)animated{
+    // [ConfigModel shareConfigModel].isMine=NO;
+    
+}
+
+
+
+-(void)initView{
+    
+    
+    
+    if ([userToken isEqualToString:@""]||userToken==nil) {
+        UnloginFifthViewController *controller=[[UnloginFifthViewController alloc] init];
+        controller.view.frame=self.view.bounds;
+        [self addChildViewController:controller];
+        [self.view addSubview:controller.view];
+    }else{
+        
+        FifthViewController *controller=[[FifthViewController alloc] init];
+        controller.view.frame=self.view.bounds;
+        [self addChildViewController:controller];
+        [self.view addSubview:controller.view];
+    }
+}
+
+-(void)userTokenChanged{
+  //  [self initView];
+    FifthViewController *controller=[[FifthViewController alloc] init];
+    controller.view.frame=self.view.bounds;
+    [self addChildViewController:controller];
+    [self.view addSubview:controller.view];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+
+
+@end

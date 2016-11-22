@@ -1,0 +1,15 @@
+//
+//  NavigationBarView.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/29.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface NavigationTopView : UIView
+@property (weak, nonatomic) IBOutlet UIButton *backButton;
+@property (weak, nonatomic) IBOutlet UILabel *titleLabel;
++(instancetype)initNavigationTopView;
+@end

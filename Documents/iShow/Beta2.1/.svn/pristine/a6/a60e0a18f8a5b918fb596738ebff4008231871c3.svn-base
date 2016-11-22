@@ -1,0 +1,27 @@
+//
+//  RegisterViewController.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/21.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface RegisterViewController : UIViewController
+@property (weak, nonatomic) IBOutlet UILabel *agreementLabel;
+@property (weak, nonatomic) IBOutlet UITextField *phoneTextField;
+@property (weak, nonatomic) IBOutlet UITextField *codeTextField;
+@property (weak, nonatomic) IBOutlet UITextField *nickNameTextField;
+@property (weak, nonatomic) IBOutlet UITextField *passwordTextField;
+@property (weak, nonatomic) IBOutlet UIButton *getCodeButton;
+@property (weak, nonatomic) IBOutlet UILabel *secondsLabel;
+@property (weak, nonatomic) IBOutlet UIView *oneView;
+@property (weak, nonatomic) IBOutlet UIView *twoView;
+@property (weak, nonatomic) IBOutlet UIView *threeView;
+@property (weak, nonatomic) IBOutlet UIView *fourView;
+@property (weak, nonatomic) IBOutlet UIView *fiveView;
+
+@property (nonatomic, strong) UserModel *userModel;
+
+@end

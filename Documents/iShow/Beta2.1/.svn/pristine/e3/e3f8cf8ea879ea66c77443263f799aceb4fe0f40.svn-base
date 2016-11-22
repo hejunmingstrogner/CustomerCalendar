@@ -1,0 +1,104 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#include "mpSoundPlayer.h"
+#include "MpLog.h"
+
+#import <AVFoundation/AVFoundation.h>
+@interface soundPlayerDelegate : NSObject <AVAudioPlayerDelegate>
+{
+    MpSoundPlayer *player_;
+}
+@end
+@implementation soundPlayerDelegate
+-(void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag
+{
+    if(player_ != nil){
+        player_->soundPlayerDidFinished(flag);
+    }
+}
+-(void)setMpSoundPlayer:(MpSoundPlayer*)player
+{
+    player_ = player;
+}
+
+@end
+
+
+void MpSoundPlayer::soundPlayerDidFinished(bool flag)
+{
+}
+
+MpSoundPlayer::MpSoundPlayer()
+{
+    mPlayerObj = NULL;
+    mDelegate  = NULL;
+    mOffset    = 0;
+}
+
+MpSoundPlayer::~MpSoundPlayer()
+{
+    release();
+}
+
+
+
+void MpSoundPlayer::setDataSource(const char *file)
+{
+    NSString *bgm = [NSString stringWithUTF8String:file];
+    NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:bgm];
+    AVAudioPlayer *player = [[AVAudioPlayer alloc] initWithContentsOfURL:fileURL error:nil];
+    soundPlayerDelegate *delegate = [[soundPlayerDelegate alloc] init];
+    mDelegate = (void*)CFBridgingRetain(delegate);
+    player.delegate = delegate;
+    mPlayerObj = (void*)CFBridgingRetain(player);
+    [delegate setMpSoundPlayer:this];
+}
+
+void MpSoundPlayer::prepare()
+{
+    AVAudioPlayer *player = (__bridge AVAudioPlayer*)mPlayerObj;
+    float offset = (float)mOffset / 1000;
+    [player setCurrentTime:offset];
+    [player prepareToPlay];
+    
+}
+
+void MpSoundPlayer::play()
+{
+    AVAudioPlayer *player = (__bridge AVAudioPlayer*)mPlayerObj;
+    [player play];
+}
+void MpSoundPlayer::stop()
+{
+    AVAudioPlayer *player = (__bridge AVAudioPlayer*)mPlayerObj;
+    [player stop];
+}
+void MpSoundPlayer::setOffset(int msec)
+{
+    AVAudioPlayer *player = (__bridge AVAudioPlayer*)mPlayerObj;
+    if(player.playing){
+        [player stop];
+    }
+    mOffset = msec;
+}
+
+void MpSoundPlayer::pause()
+{
+    AVAudioPlayer *player = (__bridge AVAudioPlayer*)mPlayerObj;
+    [player pause];
+}
+
+
+void MpSoundPlayer::release()
+{
+    CFRelease(mDelegate);
+    mDelegate = NULL;
+    CFRelease(mPlayerObj);
+    mPlayerObj = NULL;
+}
+
+
+
+

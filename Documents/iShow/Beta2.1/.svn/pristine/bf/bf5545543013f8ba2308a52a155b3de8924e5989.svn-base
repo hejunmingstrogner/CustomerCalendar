@@ -1,0 +1,1657 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#if defined ANDROID_NDK
+#elif defined IPHONE
+#include <OpenGLES/ES1/gl.h>
+#include <OpenGLES/ES1/glext.h>
+#else
+#endif
+
+#include "MpMovie.h"
+#include "ovlyTexture.h"
+#include "faceOrder.h"
+#include "MpLog.h"
+#include "mediaCtrlIf.h"
+#include "MpSoundPlayer.h"
+
+#include "mprender.h"
+#include "mpsynth.h"
+#include "mpface.h"
+#include "mptypes.h"
+#include "mpctlanimation.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <string.h>
+#include <sys/time.h>
+#if defined ANDROID_NDK
+#include <sys/time.h>
+#else
+#include <sys/timeb.h>
+#endif
+
+#define FAST_ENCODE
+#ifdef FAST_ENCODE
+int encFrameNum = 6; // must be positive value
+#endif
+float movieSizeDiv = 1.333f; // must be positive value
+
+static int encodingBitRateHigh = (int)(1.8 * 1024 * 1024); //1.8Mbps
+// base on BPP calc. BPP x fps x width x height (select BPP as 0.225)
+// 0.225 * 24 * 640 * 360 = 1244160bps. 1.8Mbps is enough to keep quality.
+static int encodingBitRateLow = (int)(0.8 * 1024 * 1024);  // 0.8Mbps
+// 0.225 * 24 * 480 * 270 = 699840bps.  0.8Mbps is enough to keep quality.
+
+extern unsigned LodePNG_decode_file(unsigned char** out, unsigned* w, unsigned* h,
+                                    const char* filename, unsigned colorType, unsigned bitDepth);
+
+namespace motionportrait {
+
+class mpTimer {
+public:
+    mpTimer(){
+        mBaseTime = 0;
+        mPauseTime = 0;
+        mRate      = 1.0f;
+    };
+
+    void start(int offset = 0){
+        mBaseTime = getTime() - offset;
+    }
+    int getCrrentTime(){
+        return (int)((getTime() - mBaseTime) / mRate);
+    };
+    void pause(){
+        if(mPauseTime == 0){
+            mPauseTime = getTime();
+        }
+    };
+    void unPause(){
+        long diff = getTime() - mPauseTime;
+        mBaseTime += diff;
+        mPauseTime = 0;
+    }
+    
+private:
+    static long getTime(){
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    };
+    long  mBaseTime;
+    long  mPauseTime;
+    float mRate;
+};
+
+
+MpMovie::MpMovie(const char *dir)
+{    
+    // Prepare resource
+    mRender = new MpRender();
+    mRender->Init();
+
+    for(int i = 0; i < MAX_FACE_NUM; i++){
+        mFace[i]   = new MpFace();
+        animData_[i] = 0;
+    }
+    
+    for(int i=0; i<MAX_FACE_NUM; ++i) {
+        mOverlayParts[i] = NULL;
+        mOverlayTexBuff[i] = NULL;
+        mOverlayPartsTex[i] = 0;
+    }
+    mFaceOrder = NULL;
+    
+    char fname[MAX_PATH];
+    sprintf(fname, "%s/%s", dir, SYNTHRES_DIR);
+    mGenerator = MpFaceGenerator::GetInstance(fname);
+    mGenerator->SetFaceGeneratorDelegate(this);
+    
+    mVideoDecoder = new VideoDecoderWrp();
+    mSndPlayer  = new MpSoundPlayer();
+    mWriteMovie = new writeMovieWrp();
+    
+    // Initialize valuables
+    mCurrentFrame = 0;
+    mVideoImageTex = 0;
+    mNumOfFace = 0;
+    mDuration  = 0;
+    mFps       = 0;
+    
+    mScImg     = NULL;
+    mFaceImg   = NULL;
+    mId        = -1;
+    mOverlayImageTex = 0;
+    mOverlayPos  = kMovieEnd;
+    mOverlayMsec = -1;
+    
+    pMovieDelegate = NULL;
+    pMovieControlDelegate = NULL;
+    
+    mVideoMode = kPlayback;
+    mMovieSize = kNormalSize;
+    
+    mTimer   = NULL;
+    mStatus   = kIdle;
+#ifdef FAST_ENCODE
+    mCallbackMask = encFrameNum;
+#else
+    mCallbackMask = 1;
+#endif
+    mTakeScreenShot = false;
+    mIsStartAudio   = false;
+    
+    strncpy(mResourcePath, dir, strlen(dir) + 1);
+}
+
+MpMovie::~MpMovie()
+{
+    freeMovieData();
+    freeResources();
+}
+
+MpMovieResult MpMovie::Play()
+{
+    if(mStatus != kPrepared){
+        return kErrorInvalidState;
+    }
+   
+    mCurrentFrame = 0;
+    mIsDetectInitialFrame = false;
+    
+    mStatus = kStarted;
+    
+    // delayed tex preparation
+    for(int i = 0; i < MAX_FACE_NUM; i++){
+        if(mOverlayTexBuff[i] != NULL){
+            if(mOverlayPartsTex[i]){
+                glDeleteTextures(1, &mOverlayPartsTex[i]);
+            }
+            mOverlayPartsTex[i] = generateTexture();
+            glBindTexture(GL_TEXTURE_2D, mOverlayPartsTex[i]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mOverlayPartsW[i], mOverlayPartsH[i], 0, GL_RGBA,GL_UNSIGNED_BYTE, mOverlayTexBuff[i]);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            free(mOverlayTexBuff[i]);
+            mOverlayTexBuff[i] = NULL;
+        }
+    }
+    
+    // If we can get correct frame no, no need to use this.
+    mVideoDecoder->setOffset(0);
+    
+    // prepare Sound Player
+    mSndPlayer->setOffset(0);
+    mSndPlayer->prepare();
+
+    startPlayback();
+    
+    return kSuccess;
+}
+
+MpMovieResult MpMovie::Pause()
+{
+    if(mVideoMode == kGenerateMovie){
+        return kErrorInvalidState;
+    }
+    if(mStatus == kPaused){
+        return kSuccess;
+    }
+    if(mStatus != kStarted){
+        return kErrorInvalidState;
+    }
+    
+    if(pMovieControlDelegate != NULL){
+        pMovieControlDelegate->RequestStopRenderer(false);
+    }
+    
+    mSndPlayer->pause();
+    mTimer->pause();
+    mStatus = kPaused;
+    return kSuccess;
+}
+    
+MpMovieResult MpMovie::UnPause()
+{
+    if(mVideoMode == kGenerateMovie){
+        return kErrorInvalidState;
+    }
+    if(mStatus == kStarted){
+        return kSuccess;
+    }
+    if(mStatus != kPaused){
+        return kErrorInvalidState;
+    }
+    mStatus   = kStarted;
+    if(pMovieControlDelegate != NULL){
+        pMovieControlDelegate->RequestStartRenderer(mFps);
+    }
+    mSndPlayer->play();
+    mTimer->unPause();
+    return kSuccess;
+}
+
+MpMovieResult MpMovie::Suspend()
+{
+    if(mStatus != kStarted && mStatus != kPaused){
+        return kSuccess;
+    }
+    if(mVideoMode == kGenerateMovie){
+        //if in GenerateMode, stop momovie and release data. (giving up generation)
+        stopPlayback();
+        freeMovieData();
+    }else{
+        mSeekOffset = mTimer->getCrrentTime();
+        stopPlayback();
+    }
+    mPrevStatus = mStatus;
+    mStatus = kSuspend;
+    
+    return kSuccess;
+}
+
+MpMovieResult MpMovie::Resume()
+{
+    if(mStatus != kSuspend){
+        return kSuccess;
+    }
+
+    if(mVideoMode == kGenerateMovie){
+        // in GenerateMode, notify MovieGeneration has finished to User.
+        mStatus = kStopped;
+        mPrevStatus = kInvalidStatus;
+        pMovieDelegate->GenerateMovieFinished(kErrorOthers);
+        return kSuccess;
+    }
+
+    mVideoDecoder->setOffset(mSeekOffset);
+    mSndPlayer->setOffset(mSeekOffset);
+    mSndPlayer->prepare();
+    
+    mIsDetectInitialFrame = false;
+    mCurrentFrame = mSeekOffset / mTimePerFrame;
+    startPlayback();
+    
+    mStatus = mPrevStatus;
+    mPrevStatus = kInvalidStatus;
+    
+    return kSuccess;
+}
+
+MpMovieResult MpMovie::SeekTo(int msec)
+{
+    if(mVideoMode == kGenerateMovie){
+        return kErrorInvalidState;
+    }
+    if(mStatus != kStarted && mStatus != kPaused){
+        return kErrorInvalidState;
+    }
+    if(msec < 0 || msec > mDuration){
+        return kErrorInvalidParam;
+    }
+    
+    mStatus = kStopped;
+    stopPlayback();
+
+    mVideoDecoder->setOffset(msec);
+    mSndPlayer->setOffset(msec);
+    mSndPlayer->prepare();
+    
+    mIsDetectInitialFrame = false;
+    mSeekOffset = msec;
+    mCurrentFrame = msec / mTimePerFrame;
+
+    mStatus = kStarted;
+    startPlayback();
+    
+    return kSuccess;
+}
+    
+MpMovieResult MpMovie::Stop()
+{
+    if(mStatus == kStopped){
+        // do nothing
+        return kSuccess;
+    }else if(mStatus != kStarted && mStatus != kPaused){
+        return kErrorInvalidState;
+    }
+
+    stop();
+
+    // reset internal setting
+    mVideoMode = kPlayback;
+    mMovieSize = kNormalSize;
+
+    mOverlayPos   = kMovieEnd;
+    mOverlayMsec  = -1;
+
+    return kSuccess;
+}
+
+MpMovieResult MpMovie::SetWorkArea(const char *workArea)
+{
+    if(workArea == NULL){
+        return kErrorInvalidParam;
+    }
+    int len = (int)strlen(workArea);
+    strncpy(mWorkArea, workArea, (len > (MAX_PATH - PATH_MARGIN) ? (MAX_PATH - PATH_MARGIN) : len+1));
+
+    return kSuccess;
+}
+
+MpMovieResult MpMovie::SetMovieData(const char *dir)
+{
+    if(mStatus != kIdle) {
+        return kErrorInvalidState;
+    }
+    
+    int len = (int)strlen(dir);
+    if(len > (MAX_PATH - PATH_MARGIN)){
+        return kErrorInvalidParam;
+    }
+    
+    FILE *fd;
+    char fname[MAX_PATH];
+    
+    // setup face maping information
+    sprintf(fname, "%s/%s", dir, INFO_FILE_NAME);
+    if((fd = fopen(fname, "r")) == NULL) {
+        return kErrorIO;
+    }
+    if(fscanf(fd, "%d %d", &mVideoWidth, &mVideoHeight) != 2) {
+        fclose(fd);
+        return kErrorIO;
+    }
+    if(fscanf(fd, "%d", &mNumOfFace) != 1){
+        fclose(fd);
+        return kErrorIO;
+    }
+    screenWidth_  = mVideoWidth;
+    screenHeight_ = mVideoHeight;
+    
+    fclose(fd);
+    
+    struct stat st;
+    sprintf(fname, "%s/%s", dir, AUDIO_FILE_NAME);
+    if(stat(fname, &st)) {
+        // file doesn't exist
+        return kErrorIO;
+    }
+    mSndPlayer->setDataSource(fname);
+    
+    sprintf(fname, "%s/%s", dir, MEDIA_FILE_NAME);
+    if(stat(fname, &st)) {
+        // file doesn't exist
+        return kErrorIO;
+    }
+    mVideoDecoder->setDataSource(fname);
+    mDuration = mVideoDecoder->getDuration();
+    mFps      = mVideoDecoder->getFps();
+    if(mDuration == 0 || mFps == 0){
+        return kErrorInvalidParam;
+    }
+    mNumOfFrame = mDuration * mFps / 1000;
+    
+    strncpy(mMovieDataPath, dir, len+1);
+
+    // Initialize variables
+    mStatus       = kInitialized;
+#ifdef FAST_ENCODE
+    mCallbackMask = encFrameNum;
+#else
+    mCallbackMask = 1;
+#endif
+    mVideoMode = kPlayback;
+    mMovieSize = kNormalSize;
+
+    mOverlayPos   = kMovieEnd;
+    mOverlayMsec  = -1;
+
+    mValidFaceMap.clear();
+    
+    return kSuccess;
+}
+
+struct dummyInfo {
+    float fps;
+    int nframe;
+    int nexpr;
+    void *buf;
+};
+
+MpMovieResult MpMovie::Prepare()
+{
+    if(mStatus != kInitialized && mStatus != kStopped){
+        return kErrorInvalidState;
+    }
+
+    char fname[MAX_PATH];
+    unsigned char *buf;
+    char *dir = mMovieDataPath;
+    for(int i = 0; i < mNumOfFace; i++){
+        std::map<int, FaceData*>::iterator it = mValidFaceMap.find(i);
+        if(it != mValidFaceMap.end()){
+            MpFace *face = mFace[i];
+            MpCtlAnimation *anim = face->GetCtlAnimation();
+
+            sprintf(fname, "%s/face%d/%s", dir, i, ANI2_FILE_NAME);
+            animData_[i] = (long)anim->CreateAnimation(fname);
+            if(!animData_[i]){
+                return kErrorInvalidModel;
+            }
+            mNumOfAnimFrame = ((struct dummyInfo*)animData_[i])->nframe;
+            mAnimFps      = ((struct dummyInfo*)animData_[i])->fps;
+            
+            if(it->second->mUseDefaultExp){
+                sprintf(fname, "%s/%s", dir, ANIM_DEFAULT_FILE_NAME);
+            }else{
+                sprintf(fname, "%s/face%d/%s", dir, i, ANIM_FILE_NAME);
+            }
+            if(anim->SetExprData(fname)){
+                return kErrorInvalidModel;
+            }
+
+            // setup overlay
+            sprintf(fname, "%s/face%d/%s", dir, i, OVLAY_LIST_FILE_NAME);
+            ovlyTexture *ovly = new ovlyTexture();
+            if(ovly->setOverlayList(fname) == true){
+                mOverlayParts[i] = ovly;
+                // setup overlay texture
+                sprintf(fname, "%s/face%d/%s", dir, i, OVLAY_IMG_FILE_NAME);
+                if(LodePNG_decode_file(&buf, &mOverlayPartsW[i], &mOverlayPartsH[i], fname, 6, 8)) continue;
+                
+                mOverlayTexBuff[i] = buf;
+            }else{
+                delete ovly;
+            }
+        }
+    }
+    
+#ifdef ANDROID_NDK
+    if(mValidFaceMap.size() == 0){
+        MpLog(kDebug, "map is zero\n");
+        MpFace *face = mFace[0];
+        MpCtlAnimation *anim = face->GetCtlAnimation();
+        
+        sprintf(fname, "%s/face%d/%s", dir, 0, ANI2_FILE_NAME);
+        long animData = (long)anim->CreateAnimation(fname);
+        if(!animData){
+            MpLog(kError, "Failed to load %s\n", fname);
+            return kErrorInvalidModel;
+        }
+        mNumOfAnimFrame = ((struct dummyInfo*)animData)->nframe;
+        mAnimFps      = ((struct dummyInfo*)animData)->fps;
+        anim->DestroyAnimation((MpCtlAnimation::AnimDataId)animData);
+        MpLog(kDebug, "Prepare %d %d %d %d\n", mNumOfFrame, mNumOfAnimFrame, mFps, mAnimFps);
+    }
+#endif
+    
+    // setup face order file
+    mFaceOrder = new faceOrder();
+    sprintf(fname, "%s/%s", dir, FACEORDER_FILE_NAME);
+    if(!mFaceOrder->setOrderList(fname, mNumOfFace)){
+        delete mFaceOrder;
+        mFaceOrder = NULL;
+    }
+
+    mTimePerFrame = 1000.0f/mFps;
+    mSeekOffset = 0;
+    mStatus     = kPrepared;
+
+    return kSuccess;
+}
+
+
+
+MpMovieResult MpMovie::SetFaceData(FaceData *faceData)
+{
+    if(faceData == NULL){
+        return kErrorInvalidParam;
+    }
+
+    return SetFaceData(faceData->mIndex, faceData);
+}
+    
+MpMovieResult MpMovie::SetFaceData(int index, FaceData *faceData)
+{
+    if(index < 0 || faceData == NULL){
+        return kErrorInvalidParam;
+    }
+    if(faceData->mFaceObj == NULL && faceData->mFacePath[0] == '\0'){
+        return kErrorInvalidParam;
+    }
+    if(index >= mNumOfFace){
+        return kErrorInvalidParam;
+    }
+    if(mStatus != kInitialized && mStatus != kStopped){
+        return kErrorInvalidState;
+    }
+    
+    // If face has already set on this index, clear.
+    ClearFaceData(index);
+    
+    char fname[MAX_PATH];
+    mpResult ret;
+    if(faceData->mCompartsPath[0] != '\0'){
+        // custom comparts
+        sprintf(fname, "%s", faceData->mCompartsPath);
+        ret = mRender->SetResourcePath(fname);
+        if(ret != MP_SUCCESS){
+            return kErrorCoreInternal;
+        }
+    }
+    
+    if(pMovieControlDelegate != NULL){
+        pMovieControlDelegate->RequestSetContext();
+    }
+
+    if(faceData->mFaceObj){
+        ret = mFace[index]->Load((mpFaceObject)(faceData->mFaceObj));
+    }else{
+        ret = mFace[index]->Load(faceData->mFacePath);
+    }
+    if(ret != MP_SUCCESS){
+        return kErrorCoreInternal;
+    }
+
+    if(faceData->mUseDecoItem == true){
+        sprintf(fname, "%s/face%d/%s", mMovieDataPath, index, DECO_FILE_NAME);
+        struct stat st;
+        if(!stat(fname, &st)){
+            // file exist
+            mFace[index]->LoadDecoItem(fname);
+        }
+    }
+    
+    // automatically sorted by index.
+    mValidFaceMap.insert(std::map<int, FaceData*>::value_type(index, faceData));
+    return kSuccess;
+}
+
+MpMovieResult MpMovie::SetFaceData(int index, const char *face, const char *parts)
+{
+    if(index < 0 || face == NULL || face[0] == '\0'){
+        return kErrorInvalidParam;
+    }
+
+    if(index >= mNumOfFace){
+        return kErrorInvalidParam;
+    }
+    if(mStatus != kInitialized && mStatus != kStopped){
+        return kErrorInvalidState;
+    }
+    
+    // If face has already set on this index, clear.
+    ClearFaceData(index);
+    
+    FaceData *data = new FaceData();
+    data->mIsOneTime = true;
+    strncpy(data->mFacePath, face, strlen(face) + 1);
+    if(parts != NULL && parts[0] != '\0'){
+        data->SetCompartsPath(parts);
+    }
+    return SetFaceData(index, data);
+}
+
+MpMovieResult MpMovie::ClearFaceData(int index)
+{
+    if(mStatus != kInitialized && mStatus != kStopped){
+        return kErrorInvalidState;
+    }
+
+    std::map<int, FaceData*>::iterator it = mValidFaceMap.find(index);
+    if(it != mValidFaceMap.end()){
+        // clear animation and overlay, if they are created.
+        freeAnimationData(index);
+        mFace[index]->Unload();
+        FaceData *data = it->second;
+        // Clear Face Data
+        mValidFaceMap.erase(index);
+        if(data-> mIsOneTime){
+            delete data;
+        }
+    }
+    return kSuccess;
+}
+    
+MpMovieResult MpMovie::FreeFaceData(FaceData *faceData)
+{
+    if(faceData->mFaceObj != NULL){
+        void* obj = faceData->mFaceObj;
+        mGenerator->FreeFaceData(obj);
+    }
+    delete faceData;
+    return kSuccess;
+}
+
+MpMovieResult MpMovie::ClearData()
+{
+    if(mStatus != kIdle && mStatus != kInitialized && mStatus != kStopped){
+        return kErrorInvalidState;
+    }
+    for(int i = 0; i < MAX_FACE_NUM; i++){
+        ClearFaceData(i);
+    }
+    freeMovieData();
+
+    mStatus = kIdle;
+    return kSuccess;
+}
+    
+MpMovieResult MpMovie::GenerateFace(int index, MpFaceGenerator::FaceImg *fImg)
+{
+    char fname[MAX_PATH];
+
+    if(mFaceImg != NULL){
+        // generating face
+        return kErrorInvalidState;
+    }
+    if(fImg == NULL || fImg->mImg == NULL){
+        return kErrorInvalidParam;
+    }
+    if(index < 0 || index >= mNumOfFace){
+        return kErrorInvalidParam;
+    }
+    
+//    if(fImg->mFaceName == NULL){
+//        fImg->mFaceName = (char*)malloc(MAX_PATH);
+//        sprintf(fImg->mFaceName, "%s/avatar%d.bin", mWorkArea, index);
+//    }
+//    
+//    sprintf(fname, "%s/face%d/%s", mMovieDataPath, index, MKOVR_FILE_NAME);
+//    struct stat st;
+//    if(!stat(fname, &st)){
+//        if(fImg->mModelName != NULL){
+//            free(fImg->mModelName);
+//        }
+//        fImg->mModelName = (char*)malloc(MAX_PATH);
+//        strncpy(fImg->mModelName, fname, strlen(fname) + 1);
+//    }
+    {// Mask Test
+        sprintf(fname, "%s/face%d/%s", mMovieDataPath, index, MASK_FILE_NAME);
+        struct stat st;
+        if(!stat(fname, &st)){
+            // find mask file
+            unsigned char *buff;
+            unsigned char *alpha;
+            unsigned int w;
+            unsigned int h;
+            LodePNG_decode_file(&buff, &w, &h, fname, 6, 8);
+            if(buff){
+                alpha = (unsigned char*)malloc(w*h);
+                if(alpha != NULL){
+                    for(int i = 0; i < w*h; i++){
+                        // this is correct
+                        alpha[i] = ~(buff[i*4+3]);
+                        // this is tentative
+                        //alpha[i] = ~(buff[i*4]);
+                    }
+                    free(fImg->mImg->alpha);
+                    fImg->mImg->alpha = alpha;
+                }
+                free(buff);
+                
+                if(fImg->mImg->w != fImg->mImg->h || fImg->mImg->w != w){
+                    //resize
+                    unsigned char *dst = (unsigned char*)malloc(w*w*COLOR_SIZE_RBG);
+                    if(dst != NULL){
+                        scaleImage(fImg->mImg->rgb, fImg->mImg->w, fImg->mImg->h, COLOR_SIZE_RBG, dst, w, h);
+                        free(fImg->mImg->rgb);
+                        fImg->mImg->rgb = dst;
+                        fImg->mImg->w = w;
+                        fImg->mImg->h = w;
+                    }
+                }
+            }
+        }
+    }
+    
+    mFaceImg = fImg;
+    mId      = index;
+    mGenerator->GenerateFace(fImg);
+    
+    return kSuccess;
+}
+
+unsigned char *MpMovie::GetFaceItemImage(int index, FaceItemType type, int &w, int &h)
+{
+    char fname[MAX_PATH];
+    switch(type){
+        case kDecoInfo:
+            sprintf(fname, "%s/face%d/%s", mMovieDataPath, index, DECO_FILE_NAME);
+            break;
+        case kMaskInfo:
+            sprintf(fname, "%s/face%d/%s", mMovieDataPath, index, MASK_FILE_NAME);
+            break;
+        default:
+            return NULL;
+            break;
+    }
+    unsigned char *img = NULL;
+    LodePNG_decode_file(&img, (unsigned int *)&w, (unsigned int *)&h, fname, 6, 8);
+    return img;
+}
+
+
+MpMovieResult MpMovie::SetIntParam(ParamCmd cmd, int intArg)
+{
+    MpMovieResult ret = kSuccess;
+
+    switch(cmd){
+        case kFrameRate:
+            ret = kErrorInvalidParam;
+            break;
+        case kFrameWidth:
+            ret = kErrorInvalidParam;
+            break;
+        case kFrameHeight:
+            ret = kErrorInvalidParam;
+            break;
+        case kMode:
+            if(intArg == kPlayback || intArg == kGenerateMovie){
+                mVideoMode = (VideoMode)intArg;
+            }else{
+                ret = kErrorInvalidParam;
+            }
+            break;
+        case kOutputMovieSize:
+            if(intArg == kNormalSize || intArg == kSmallSize){
+                mMovieSize = (MovieSize)intArg;
+            }else{
+                ret = kErrorInvalidParam;
+            }
+            break;
+        case kCallbackInterval:
+            if(intArg > 0 && intArg < 3000){
+                mCallbackMask = mFps * intArg / 1000;
+#ifdef FAST_ENCODE
+                if(mCallbackMask < encFrameNum){
+                    mCallbackMask = encFrameNum;
+                }
+#else
+                if(mCallbackMask == 0){
+                    mCallbackMask = 1;
+                }
+#endif
+            }else{
+                ret = kErrorInvalidParam;
+            }
+            break;
+        default:
+            ret = kErrorInvalidParam;
+            break;
+    }
+    return ret;
+}
+
+MpMovieResult MpMovie::GetIntParam(ParamCmd cmd, int *intArg)
+{
+    MpMovieResult ret = kSuccess;
+    if(intArg == NULL){
+        return kErrorInvalidParam;
+    }
+    switch(cmd){
+        case kFrameRate:
+            *intArg = mFps;
+            break;
+        case kAnimFrameRate:
+            *intArg = mAnimFps;
+            break;
+        case kFrameWidth:
+            *intArg = mVideoWidth;
+            break;
+        case kFrameHeight:
+            *intArg = mVideoHeight;
+            break;
+//        case kTotalFrames:
+//            *intArg = mNumOfFrame;
+//            break;
+        case kDuration:
+            *intArg = mDuration;
+            break;
+        case kNumOfFaces:
+            *intArg = mNumOfFace;
+            break;
+        case kMode:
+            *intArg = mVideoMode;
+            break;
+        case kOutputMovieSize:
+            *intArg = mMovieSize;
+            break;
+        default:
+            ret = kErrorInvalidParam;
+            break;
+    }
+    return ret;
+}
+    
+MpMovieResult MpMovie::SetStringParam(ParamCmd cmd, const char *charArg)
+{
+    MpMovieResult ret = kSuccess;
+    if(charArg == NULL){
+        return kErrorInvalidParam;
+    }
+    switch(cmd){
+        case kOutputMedia:
+        {
+            int len = (int)strlen(charArg);
+            if(len > (MAX_PATH - PATH_MARGIN)){
+                ret = kErrorInvalidParam;
+            }else{
+                strncpy(outMoviePath_, charArg, len+1);
+            }
+            break;
+        }
+        default:
+        {
+            ret = kErrorInvalidParam;
+            break;
+        }
+    }
+    return ret;
+}
+
+MpMovie::Status MpMovie::GetCurrentStatus()
+{
+    return mStatus;
+}
+
+int MpMovie::GetCurrentPosition(){
+    if(mStatus == kStarted || mStatus == kPaused){
+        return mCurrentFrame * mTimePerFrame;
+    }
+    return -1;
+}
+
+MpMovieResult MpMovie::DrawOneFrame(int w, int h)
+{
+    if(mStatus == kPaused){
+        if(mTakeScreenShot && mScImg != NULL){
+            mTakeScreenShot = false;
+            if(pMovieDelegate != NULL){
+                drawCurrentFrame();
+                captureFrame();
+                mScImg = NULL;
+                return kSuccess;
+            }
+        }
+    }
+    
+    if(mStatus != kStarted){
+        return kSuccess;
+    }
+
+    int status;
+    screenWidth_ = w;
+    screenHeight_ = h;
+    
+    if(mVideoMode == kGenerateMovie){
+        status = generateMovie();
+    }else{
+        status = showMpMovie();
+        if(mTakeScreenShot && mScImg != NULL){
+            mTakeScreenShot = false;
+            if(pMovieDelegate != NULL){
+                captureFrame();
+                mScImg = NULL;
+            }
+        }
+    }
+    
+    // notify frame number to user
+    //if(mVideoMode == kGenerateMovie && pMovieDelegate != NULL){
+    if(pMovieDelegate != NULL){
+#ifdef FAST_ENCODE
+        if(!((mCurrentFrame/encFrameNum) % (mCallbackMask/encFrameNum))){
+#else
+        if(!(mCurrentFrame % mCallbackMask)){
+#endif
+            pMovieDelegate->NotifyCurrentPosition(mCurrentFrame * mTimePerFrame);
+        }
+    }
+    
+    MpMovieResult ret = kSuccess;
+    if(status != 0) { // finishe or error
+        // stop MpMovie
+        stop();
+        if(status == 2){
+            ret = kErrorOthers;
+        }
+        if(mVideoMode == kPlayback && pMovieDelegate != NULL){
+            pMovieDelegate->PlaybackMovieFinished(ret);
+        }else if(mVideoMode == kGenerateMovie){
+            if(status != 2){
+                if(generateOutputVideo()){
+                    ret = kErrorIO;
+                }
+            }
+            if(pMovieDelegate != NULL){
+                pMovieDelegate->GenerateMovieFinished(ret);
+            }
+        }
+        // reset internal setting
+        mVideoMode = kPlayback;
+        mMovieSize = kNormalSize;
+        
+        mOverlayPos   = kMovieEnd;
+        mOverlayMsec  = -1;
+    }
+    return ret;
+}
+
+MpMovieResult MpMovie::DrawFace(long duration, int width, int height){
+    if(duration < 0 || width < 0 || height < 0){
+        return kErrorInvalidParam;
+    }
+    float timePerFrame = (float)1000.0f / mAnimFps;
+    int frame = (int)((float)duration / timePerFrame + 0.5f);
+    drawFace(frame, duration, width, height);
+    return kSuccess;
+}
+
+MpMovieResult MpMovie::TakeScreenShot()
+{
+    if(mVideoMode != kPlayback || (mStatus != kStarted && mStatus != kPaused)){
+        return kErrorInvalidState;
+    }
+    if(mScImg != NULL){
+        return kErrorInvalidState;
+    }
+    mTakeScreenShot = true;
+    NativeImg *img = new NativeImg();
+    img->mW = screenWidth_;
+    img->mH = screenHeight_;
+    if((img->mImg = (unsigned char *)malloc(4 * screenWidth_ * screenHeight_)) == NULL) {
+        delete img;
+        return kErrorOutOfMemory;
+    }
+    mScImg = img;
+    if(pMovieControlDelegate != NULL){
+        pMovieControlDelegate->RequestRendering();
+    }
+    return kSuccess;
+}
+    
+MpMovieResult MpMovie::SetOverlayImage(NativeImg *img, OverlayImagePositoin pos, int msec)
+{
+    if(mVideoMode != kGenerateMovie){
+        return kErrorInvalidState;
+    }
+    if(pos != kMovieEnd && pos != kMovieTop){
+        return kErrorInvalidParam;
+    }
+    if(msec < 0 || msec > mDuration){
+        return kErrorInvalidParam;
+    }
+
+    if(mOverlayImageTex){
+        glDeleteTextures(1, &mOverlayImageTex);
+    }
+    mOverlayImageTex = generateTexture();
+    glBindTexture(GL_TEXTURE_2D, mOverlayImageTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->mW, img->mH, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->mImg);
+    delete img;
+    
+    mOverlayPos   = pos;
+    mOverlayMsec  = msec;
+    return kSuccess;
+}
+
+
+/**
+ *  callback implementation
+ */
+void MpMovie::GenerateFaceFinished(MpMovieResult ret, mpFaceObject obj)
+{
+    if(pMovieDelegate != NULL){
+        FaceData *data = NULL;
+        if(ret == kSuccess || ret == kErrorDetectionFailed){
+            data = new FaceData();
+            data->mIndex = mId;
+            data->mFaceObj = (void*)obj;
+            if(ret == kErrorDetectionFailed){
+                data->mUseDefaultExp = true;
+                ret = kSuccess;
+            }
+        }
+        pMovieDelegate->GenerateFaceFinished(ret, data);
+    }
+    // mFaceImg itself is cleared inside MpFaceGenerator
+    mFaceImg = NULL;
+    mId      = -1;
+}
+    
+
+/**
+ * private method
+ */
+// 0 continue
+// 1 finish
+// 2~ error
+int MpMovie::showMpMovie()
+{
+    static unsigned char *img;
+    int frame;
+    long duration = mSeekOffset;
+
+    glScissor(0, 0, screenWidth_, screenHeight_);
+    glEnable(GL_SCISSOR_TEST);
+
+    // get video image if needed
+    if(mIsDetectInitialFrame == false) {
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        img = mVideoDecoder->getImageBuffer();
+        if(img == NULL){
+            if(!mVideoDecoder->isPlaying()){
+                return 1;   // playback has finished;
+            }
+            return 0;
+        }
+        if(mIsStartAudio == true){
+            mSndPlayer->play();
+            mIsStartAudio = false;
+        }
+        mIsDetectInitialFrame = true;
+        mTimer->start(mSeekOffset);
+        mSeekOffset = 0; // clear offset
+        mCurrentFrame = mVideoDecoder->getFrameNo();
+    } else {
+        duration = mTimer->getCrrentTime();
+        frame = (int)((float)duration/mTimePerFrame);
+        while(mCurrentFrame < frame){
+            mVideoDecoder->releaseImageBuffer();
+            img = mVideoDecoder->getImageBuffer();
+            if(img == NULL){
+                // check video decoder has finished or not.
+                //return 0;           // video end
+                if(!mVideoDecoder->isPlaying()){
+                    return 1;   // playback has finished;
+                }
+                return 0;
+            }
+            mCurrentFrame = mVideoDecoder->getFrameNo();
+        }
+        duration = (int)((float)frame * mTimePerFrame );
+    }
+
+    // draw video image
+#ifdef ANDROID_NDK
+    drawImage(img, screenWidth_, screenHeight_, GL_RGBA);
+#else
+    drawImage(img, screenWidth_, screenHeight_, GL_BGRA);
+#endif
+
+    drawFace(mCurrentFrame, duration, screenWidth_, screenHeight_);
+    
+    if(mCurrentFrame == mNumOfFrame - 1){
+        mVideoDecoder->releaseImageBuffer();
+        return 1;
+    }else{
+        return 0;
+    }
+}
+    
+
+int MpMovie::drawCurrentFrame()
+{
+    long duration;
+        
+    glScissor(0, 0, screenWidth_, screenHeight_);
+    glEnable(GL_SCISSOR_TEST);
+    
+    duration = mCurrentFrame * mTimePerFrame;
+
+#ifdef ANDROID_NDK
+    drawImage(NULL, screenWidth_, screenHeight_, GL_RGBA);
+#else
+    drawImage(NULL, screenWidth_, screenHeight_, GL_BGRA);
+#endif
+   
+    drawFace(mCurrentFrame, duration, screenWidth_, screenHeight_);
+    
+    return 0;
+}
+
+// 0 continue
+// 1 finish
+// 2~ error
+int MpMovie::generateMovie()
+{
+    bool isFaceExist = false;
+    unsigned char *img;
+#ifdef FAST_ENCODE
+    for(int i = 0; i < encFrameNum; i++){
+        isFaceExist = false;
+#endif
+    int saveWidth;
+    int saveHeight;
+    if(mMovieSize == kSmallSize){
+        saveWidth = (int)((float)mVideoWidth / movieSizeDiv + 0.5f);
+        if(saveWidth % 2){
+            saveWidth += 1;
+        }
+        saveHeight = (int)((float)mVideoHeight / movieSizeDiv + 0.5f);
+        if(saveHeight % 2){
+            saveHeight += 1;
+        }
+    }else{
+        saveWidth = mVideoWidth;
+        saveHeight = mVideoHeight;
+    }
+    
+    while(isFaceExist == false){
+        img = mVideoDecoder->getImageBuffer();
+        if(img == NULL){
+            if(!mVideoDecoder->isPlaying()){
+                return 1;   // playback has finished;
+            }
+            return 0;       //  no data, skip and continue.
+        }
+        mCurrentFrame = mVideoDecoder->getFrameNo();
+        
+        if(mOverlayImageTex > 0){
+            int overlayFrame = mOverlayMsec / mTimePerFrame;
+            if((mOverlayPos == kMovieTop && mCurrentFrame < overlayFrame) ||
+            (mOverlayPos == kMovieEnd && mCurrentFrame > overlayFrame)){
+            break;
+            }
+        }
+        
+        //if(currentFrame_ < mNumOfAnimFrame){
+        std::map<int, FaceData*>::iterator it = mValidFaceMap.begin();
+        while(it != mValidFaceMap.end()){
+            int i = (*it).first;
+            MpFace* face = mFace[i];
+            //MpFace* face = (*it).second;
+            MpCtlAnimation *anim = face->GetCtlAnimation();
+            isFaceExist = anim->AnimateData(0, mCurrentFrame * mTimePerFrame, (MpCtlAnimation::AnimDataId)animData_[i], false);
+            if(isFaceExist){
+                // face to draw is exist
+                break;
+            }
+            it++;
+        }
+
+        if(isFaceExist == false){
+            bool ret = mWriteMovie->appendFrame(img, saveWidth, saveHeight, true);
+            mVideoDecoder->releaseImageBuffer();
+            if(ret == false){
+                return 2;
+            }
+            if(mCurrentFrame == mNumOfFrame - 1){
+                // no valid frame
+                return 1; // finish
+            }
+            if(mValidFaceMap.size() == 0){
+                // no face to draw. return to main to handle callback.
+                return 0;
+            }
+        }
+    }
+        
+    glScissor(0, 0, saveWidth, saveHeight);
+    glEnable(GL_SCISSOR_TEST);
+
+#ifdef ANDROID_NDK 
+    drawImage(img, saveWidth, saveHeight, GL_RGBA);
+#else
+    drawImage(img, saveWidth, saveHeight, GL_BGRA);
+#endif
+
+    mVideoDecoder->releaseImageBuffer();
+    
+    // draw face
+    drawFace(mCurrentFrame, mCurrentFrame * mTimePerFrame, saveWidth, saveHeight);
+        
+
+    if(mOverlayImageTex > 0){
+        int overlayFrame = mOverlayMsec / mTimePerFrame;
+        if((mOverlayPos == kMovieTop && mCurrentFrame < overlayFrame) ||
+            (mOverlayPos == kMovieEnd && mCurrentFrame > overlayFrame)){
+            drawOverlayImage(mOverlayImageTex, saveWidth, saveHeight, GL_RGBA);
+        }
+    }
+        
+    // this rgba buffer is fread by writeMovie:appendFrame
+    unsigned char *rgba;
+    if((rgba = (unsigned char *)malloc(4 * saveWidth * saveHeight)) == NULL) {
+        //fprintf(stderr, "can't allocate memory\n");
+        return 3;
+    }
+    
+#ifdef ANDROID_NDK
+    glReadPixels(0, 0, saveWidth, saveHeight, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+#else    
+    glReadPixels(0, 0, saveWidth, saveHeight, GL_BGRA, GL_UNSIGNED_BYTE, rgba);
+#endif
+
+    flipScanlineOrder(rgba, saveWidth, saveHeight, 4);
+    bool ret = mWriteMovie->appendFrame(rgba, saveWidth, saveHeight, false);
+    if(ret == false){
+        return 2;
+    }
+
+#ifdef FAST_ENCODE
+        if(mCurrentFrame == mNumOfFrame - 1){
+            return 1; // finish
+        }
+    }
+    return 0;
+#else
+    return (mCurrentFrame == mNumOfFrame - 1)? 1 : 0;
+#endif
+}
+
+int MpMovie::drawFace(int frame, unsigned long time, int width, int height)
+{
+    if(mCurrentFrame >= mNumOfAnimFrame){
+        return 1;
+    }
+    glEnable(GL_BLEND);
+    
+    int order[MAX_FACE_NUM] = {0, 1, 2, 3};
+    if(mFaceOrder == NULL || mFaceOrder->getCurrentOrder(frame, order) == false){
+    }
+    
+    mpRect rect = {0, 0, width, height};
+    mRender->SetViewport(rect);
+    
+    for(int i = 0; i < mNumOfFace; i++){
+        int faceNo = order[i];
+        std::map<int, FaceData*>::iterator it = mValidFaceMap.find(faceNo);
+        if(it != mValidFaceMap.end()){
+            bool isValid = false;
+            MpFace *face = mFace[faceNo];
+            // face is set
+            MpCtlAnimation *anim = face->GetCtlAnimation();
+            isValid = anim->AnimateData(0, time, (MpCtlAnimation::AnimDataId)animData_[faceNo], false);
+            if(isValid){
+                mRender->SetFace(mFace[faceNo]);
+                mRender->Draw();
+            }
+
+            if(mOverlayParts[faceNo]) {
+                mpMovieRect src, dst;
+                char png[MAX_PATH];
+                
+                sprintf(png, "%05d.png", frame);
+                if(mOverlayParts[faceNo]->getTextureRect(png, &src, &dst)) {
+                    drawOverlayParts(faceNo, &src, &dst, width, height);
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+int MpMovie::getCurrentFrame()
+{
+    return mCurrentFrame;
+}
+
+int MpMovie::generateOutputVideo()
+{
+    char video[MAX_PATH];
+    sprintf(video, "%s/%s", mWorkArea, TEMP_VIDEO_FILE_NAME);
+    char audio[MAX_PATH];
+    sprintf(audio, "%s/%s", mMovieDataPath, AUDIO_FILE_NAME);
+    mWriteMovie->addAudio(video, audio, outMoviePath_);
+    struct stat st;
+    if(!stat(outMoviePath_, &st)){
+        // file exist
+        return 0;
+    }
+    return -1;
+}
+    
+void MpMovie::captureFrame()
+{
+    glReadPixels(0, 0, screenWidth_, screenHeight_, GL_RGBA, GL_UNSIGNED_BYTE, mScImg->mImg);
+    flipScanlineOrder(mScImg->mImg, screenWidth_, screenHeight_, 4);
+    pMovieDelegate->ScreenShotFinished(mScImg);
+}
+
+void MpMovie::freeAnimationData(int index)
+{
+    if(mFace[index] != NULL){
+        MpCtlAnimation *anim = mFace[index]->GetCtlAnimation();
+        if(animData_[index]){
+            anim->DestroyAnimation((MpCtlAnimation::AnimDataId)animData_[index]);
+            animData_[index] = 0;
+        }
+    }
+
+    if(mOverlayParts[index] != NULL){
+        delete mOverlayParts[index];
+        mOverlayParts[index] = NULL;
+    }
+    if(mOverlayPartsTex[index]){
+        glDeleteTextures(1, &mOverlayPartsTex[index]);
+        mOverlayPartsTex[index] = 0;
+    }
+    if(mOverlayTexBuff[index] != NULL){
+        free(mOverlayTexBuff);
+        mOverlayImageTex = 0;
+    }
+}
+
+void MpMovie::freeMovieData()
+{
+    for(int i = 0; i < mNumOfFace; i++){
+        std::map<int, FaceData*>::iterator it = mValidFaceMap.find(i);
+        if(it != mValidFaceMap.end()){
+            // clear animation and overlay
+            freeAnimationData(i);
+        }
+    }
+    if(mFaceOrder != NULL){
+        delete mFaceOrder;
+        mFaceOrder = NULL;
+    }
+
+    if(mVideoImageTex) {
+        glDeleteTextures(1, &mVideoImageTex);
+        mVideoImageTex = 0;
+    }
+
+    
+    if(mOverlayImageTex){
+        glDeleteTextures(1, &mOverlayImageTex);
+        mOverlayImageTex = 0;
+    }
+    mOverlayPos  = kMovieEnd;
+    mOverlayMsec = -1;
+}
+    
+void MpMovie::freeResources()
+{
+    if(mSndPlayer){
+        delete mSndPlayer;
+        mSndPlayer = NULL;
+    }
+    if(mVideoDecoder != NULL){
+        delete mVideoDecoder;
+        mVideoDecoder = NULL;
+    }
+    if(mWriteMovie != NULL){
+        delete mWriteMovie;
+        mWriteMovie = NULL;
+    }
+        
+    MpFaceGenerator::DeleteInstance();
+    mGenerator = NULL;
+        
+    for(int i = 0; i < MAX_FACE_NUM; i++){
+        if(mFace[i] != NULL){
+            delete mFace[i];
+            mFace[i] = NULL;
+        }
+        if(mRender != NULL){
+            delete mRender;
+            mRender = NULL;
+        }
+    }
+}
+
+void MpMovie::stop()
+{
+    mStatus   = kStopped;
+
+    stopPlayback();
+
+    freeMovieData();
+}
+
+void MpMovie::stopPlayback()
+{
+    if(pMovieControlDelegate != NULL){
+        pMovieControlDelegate->RequestStopRenderer(true);
+    }
+    if(mSndPlayer != NULL){
+        mSndPlayer->stop();
+    }
+    if(mVideoDecoder) {
+        mVideoDecoder->stopReadMovie();
+    }
+    if(mVideoMode == kGenerateMovie){
+        if(mWriteMovie){
+            mWriteMovie->finish();
+        }
+    }
+    if(mTimer != NULL){
+        delete mTimer;
+        mTimer = NULL;
+    }
+}
+    
+void MpMovie::startPlayback()
+{
+    mIsStartAudio = true;
+    
+    // setup to read background movie
+    if(mVideoDecoder){
+        mVideoDecoder->startReadMovie();
+    }
+    if(mVideoMode == kGenerateMovie) {
+        char video[MAX_PATH];
+        sprintf(video, "%s/%s", mWorkArea, TEMP_VIDEO_FILE_NAME);
+        int width, height;
+        int bitrate;
+        if(mMovieSize == kNormalSize) {
+            width = mVideoWidth;
+            height = mVideoHeight;
+            bitrate = encodingBitRateHigh;
+        }else{
+            width = (int)((float)mVideoWidth / movieSizeDiv + 0.5f);
+            if(width % 2){
+                width += 1;
+            }
+            height = (int)((float)mVideoHeight / movieSizeDiv + 0.5f);
+            if(height % 2){
+                height += 1;
+            }
+            bitrate = encodingBitRateLow;
+        }
+        mWriteMovie->startWriteMovie(video, width, height, mFps, bitrate);
+    }
+    
+    if(mTimer != NULL){
+        delete mTimer;
+    }
+    mTimer = new mpTimer();
+    
+    if(pMovieControlDelegate != NULL){
+        pMovieControlDelegate->RequestStartRenderer((mVideoMode == kGenerateMovie) ? REFRESH_RATE : mFps);
+    }
+    
+}
+
+GLuint MpMovie::generateTexture()
+{
+    GLuint tex;
+
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    return tex;
+}
+
+void MpMovie::drawImage(unsigned char *image, int width, int height, GLenum format)
+{
+    GLint internalformat;
+    
+    if(mVideoImageTex == 0){
+        mVideoImageTex = generateTexture();
+    }
+
+    glBindTexture(GL_TEXTURE_2D, mVideoImageTex);
+    
+    internalformat = (format == GL_RGB)? GL_RGB : GL_RGBA;
+    if(image != NULL){
+        // if image is NULL, use previous texture. (for pause rendeing)
+        glTexImage2D(GL_TEXTURE_2D, 0, internalformat, mVideoWidth, mVideoHeight, 0, format, GL_UNSIGNED_BYTE, image);
+    }
+    glEnable(GL_TEXTURE_2D);
+    glDisable(GL_ALPHA_TEST);
+    if(format == GL_RGBA)
+        glEnable(GL_BLEND);
+    else
+        glDisable(GL_BLEND);
+    
+    // Vertex setting
+    mpVector3 verts[4] = {
+        {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0},
+        {0.0, 1.0, 0.0}, {1.0, 1.0, 0.0}};
+    
+    // TexCoord setting
+    mpVector2 texCoord[4] = {{0.0f, 1.0}, {1.0, 1.0}, {0.0f, 0.0f}, {1.0, 0.0f}};
+    
+    // draw background
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrthof(0.0, 1.0, 0.0, 1.0, 0.0, 1.0) ;
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glTexCoordPointer(2, GL_FLOAT, 0, texCoord);
+    glVertexPointer(3, GL_FLOAT, 0, verts);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+}
+
+void MpMovie::drawOverlayParts(int number, mpMovieRect *src, mpMovieRect *dst, int width, int height)
+{
+    glBindTexture(GL_TEXTURE_2D, mOverlayPartsTex[number]);
+    glEnable(GL_TEXTURE_2D);
+    glDisable(GL_ALPHA_TEST);
+    glEnable(GL_BLEND);
+    
+    // Vertex setting
+    float x1 = (float)dst->x/mVideoWidth;
+    float y1 = (float)(mVideoHeight - dst->y - dst->h)/mVideoHeight;
+    float x2 = (float)(dst->x + dst->w)/mVideoWidth;
+    float y2 = (float)(mVideoHeight - dst->y)/mVideoHeight;
+    x1 -= (float)2/mVideoWidth;
+    x2 += (float)2/mVideoWidth;
+    y1 -= (float)2/mVideoHeight;
+    y2 += (float)2/mVideoHeight;
+    mpVector3 verts[4] = {{x1, y1, 0.0f}, {x2, y1, 0.0f}, {x1, y2, 0.0f}, {x2, y2, 0.0f}};
+    
+    // TexCoord setting
+    float s1 = (float)src->x/mOverlayPartsW[number];
+    float t1 = (float)(src->y + src->h)/mOverlayPartsH[number];
+    float s2 = (float)(src->x + src->w)/mOverlayPartsW[number];
+    float t2 = (float)src->y/mOverlayPartsH[number];
+    mpVector2 texCoord[4] = {{s1, t1}, {s2, t1}, {s1, t2}, {s2, t2}};
+    
+    // draw background
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrthof(0.0, 1.0, 0.0, 1.0, 0.0, 1.0) ;
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glTexCoordPointer(2, GL_FLOAT, 0, texCoord);
+    glVertexPointer(3, GL_FLOAT, 0, verts);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+}
+
+void MpMovie::drawOverlayImage(GLuint texId, int width, int height, GLenum format)
+{
+    glBindTexture(GL_TEXTURE_2D, texId);
+    
+    glEnable(GL_TEXTURE_2D);
+    glDisable(GL_ALPHA_TEST);
+    if(format == GL_RGBA)
+        glEnable(GL_BLEND);
+    else
+        glDisable(GL_BLEND);
+        
+    // Vertex setting
+    mpVector3 verts[4] = {
+        {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0},
+        {0.0, 1.0, 0.0}, {1.0, 1.0, 0.0}};
+    
+    // TexCoord setting
+    mpVector2 texCoord[4] = {{0.0f, 1.0}, {1.0, 1.0}, {0.0f, 0.0f}, {1.0, 0.0f}};
+    
+    // draw overlay image
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrthof(0.0, 1.0, 0.0, 1.0, 0.0, 1.0) ;
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glTexCoordPointer(2, GL_FLOAT, 0, texCoord);
+    glVertexPointer(3, GL_FLOAT, 0, verts);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+}
+    
+bool MpMovie::flipScanlineOrder(unsigned char *buf, int w, int h, int channel)
+{
+    int step = channel * w;
+    unsigned char *tmp;
+    
+    if((tmp = (unsigned char *)malloc(step)) == NULL) {
+        return false;
+    }
+    
+    for(int i=0; i!=h/2; ++i) {
+        memcpy(tmp, buf+i*step, step);
+        memcpy(buf+i*step, buf+(h-i-1)*step, step);
+        memcpy(buf+(h-i-1)*step, tmp, step);
+    }
+    free(tmp);
+    return true;
+}
+
+void MpMovie::scaleImage(const unsigned char *src, int src_w, int src_h, int nch,
+                         unsigned char *dst, int dst_w, int dst_h)
+{
+    float sx, sy;
+    float stepx = (float)src_w / dst_w;
+    float stepy = (float)src_h / dst_h;
+    
+    sy = 0.0f;
+    for(int y=0; y<dst_h; ++y, sy+=stepy) {
+        sx = 0.0f;
+        for(int x=0; x<dst_w; ++x, sx+=stepx) {
+            int isx0 = (int)sx;
+            int isy0 = (int)sy;
+            int isx1 = (isx0 < src_w-1)? isx0+1 : isx0;
+            int isy1 = (isy0 < src_h-1)? isy0+1 : isy0;
+            float dx = sx - isx0;
+            float dy = sy - isy0;
+            
+            for(int c=0; c<nch; ++c) {
+                float val =
+                src[nch * (isy0 * src_w + isx0) + c] * (1.0f - dx) * (1.0f - dy) +
+                src[nch * (isy0 * src_w + isx1) + c] * dx * (1.0f - dy) +
+                src[nch * (isy1 * src_w + isx0) + c] * (1.0f - dx) * dy +
+                src[nch * (isy1 * src_w + isx1) + c] * dx * dy;
+                dst[nch * (y * dst_w + x) + c] = (unsigned char)val;
+            }
+        }
+    }
+}
+    
+}

@@ -1,0 +1,16 @@
+//
+//  EditVideoViewController.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/10/21.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "TZAssetModel.h"
+
+@interface EditVideoViewController : UIViewController
+@property (strong, nonatomic) NSString *urlString;
+@property (strong, nonatomic) TZAssetModel *model;
+@property (strong, nonatomic) PHAsset *videoAsset;
+@end

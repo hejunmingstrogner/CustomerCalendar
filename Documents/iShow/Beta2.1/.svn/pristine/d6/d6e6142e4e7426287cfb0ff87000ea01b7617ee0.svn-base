@@ -1,0 +1,27 @@
+/*
+ Copyright(C) 2011-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#import "MpFaceGenerator.h"
+#import "MpMovie.h"
+#import <UIKit/UIKit.h>
+
+@interface MpMovieHelper : NSObject
+
+/**
+ * Create faceImg object from UIImage. faceImg is used to generate face.
+ *
+ * @param image  UIImage.
+ * @return       faceImage object to be used to generate face data.
+ */
++ (motionportrait::MpFaceGenerator::FaceImg*)createFaceImg:(UIImage *)image;
+
+/**
+ * Create NativeImg object from UIImage.
+ *
+ * @param image  UIImage
+ * @return       nativeImg object to be used inside MpMovie
+ */
++ (motionportrait::MpMovie::NativeImg*)createNativeImg:(UIImage *)image;
+
+@end

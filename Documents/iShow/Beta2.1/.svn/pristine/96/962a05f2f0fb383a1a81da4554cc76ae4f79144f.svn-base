@@ -1,0 +1,374 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#import <GLKit/GLKit.h>
+#import "MpMovieIf.h"
+#import "MpMovieHelper.h"
+
+using namespace motionportrait;
+
+@interface MpMovieIf()
+@end
+
+@implementation MpMovieIf {
+    MpMovie *movie_;
+    
+    UIView *view_;
+    GLKView* glkView_;
+    CADisplayLink *displayLink_;
+    EAGLContext *context_;
+    
+    MpMovieCallbackFunc *cbFunc_;
+    MpMovieControlFunc  *ctlFunc_;
+}
+
+@synthesize delegate = _delegate;
+
+
+- (id)InitWithResourcePath:(NSString *)path {
+    movie_   = new MpMovie([path UTF8String]);
+    cbFunc_  = new MpMovieCallbackFunc((__bridge void*)self);
+    movie_->SetMovieDelegate(cbFunc_);
+    ctlFunc_ = new MpMovieControlFunc((__bridge void*)self);
+    movie_->SetMovieControlDelegate(ctlFunc_);
+    
+    return self;
+}
+
+- (void)dealloc {
+    movie_->RemoveMovieDelegate(cbFunc_);
+    movie_->RemoveMovieControlDelegate(ctlFunc_);
+    delete cbFunc_;
+    delete ctlFunc_;
+    delete movie_;
+}
+
+- (void)SetRenderTarget:(UIView *)view {
+    view_ = view;
+    view_.autoresizesSubviews = YES;
+    
+    // setup GLKView
+    if(context_ == nil){
+        context_ = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
+    }
+    glkView_ = [[GLKView alloc] initWithFrame:view.frame];
+    glkView_.context = context_;
+    glkView_.delegate = (id)self;
+    glkView_.drawableColorFormat = GLKViewDrawableColorFormatRGBA8888;
+    glkView_.drawableDepthFormat = GLKViewDrawableDepthFormatNone;
+    glkView_.drawableStencilFormat = GLKViewDrawableStencilFormatNone;
+    glkView_.enableSetNeedsDisplay = NO;
+    [glkView_ setAutoresizingMask:UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
+    glkView_.contentScaleFactor = [UIScreen mainScreen].scale;
+    [view addSubview:glkView_];
+    [EAGLContext setCurrentContext:glkView_.context];
+}
+
+
+- (MpMovieResult)SetMovieData:(NSString*)dir {
+    return movie_->SetMovieData([dir UTF8String]);
+}
+
+- (MpMovieResult)GenerateFace:(int)index fImg:(MpFaceGenerator::FaceImg*)fImg {
+    return movie_->GenerateFace(index, fImg);
+}
+
+- (MpMovieResult)GenerateFace:(int)index img:(UIImage *)img {
+    MpFaceGenerator::FaceImg *fImg = [MpMovieHelper createFaceImg:img];
+    if(fImg != nil){
+        return movie_->GenerateFace(index, fImg);
+    }
+    return kErrorInvalidParam;
+}
+
+- (UIImage*) GetFaceItemImage:(int)index type:(MpMovie::FaceItemType)type {
+    int w, h;
+    unsigned char *data = movie_->GetFaceItemImage(index, type, w, h);
+    if(data == NULL){
+        return nil;
+    }
+    // generate UIImage
+    {
+        CGBitmapInfo bitmapInfo = kCGImageAlphaLast;
+        CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, data, (w * h * 4), bufferFree);
+        CGImageRef imageRef = CGImageCreate(w, h, 8, 32, 4*w,
+                                            CGColorSpaceCreateDeviceRGB(), bitmapInfo, provider,
+                                            NULL, YES, kCGRenderingIntentDefault);
+        UIImage *uImage = [UIImage imageWithCGImage:imageRef];
+        CGImageRelease(imageRef);
+        CGDataProviderRelease(provider);
+        return uImage;
+    }
+
+}
+
+- (MpMovieResult)SetFaceData:(MpMovie::FaceData *)faceData {
+    return movie_->SetFaceData(faceData);
+}
+
+- (MpMovieResult)SetFaceData:(int)index faceData:(MpMovie::FaceData *)faceData {
+    return movie_->SetFaceData(index, faceData);
+}
+
+- (MpMovieResult)SetFaceData:(int)index face:(NSString *)face parts:(NSString *)parts {
+    return movie_->SetFaceData(index, [face UTF8String], [parts UTF8String]);
+}
+
+- (MpMovieResult)Prepare {
+    return movie_->Prepare();
+}
+
+- (MpMovieResult)Play {
+    return movie_->Play();
+}
+
+- (MpMovieResult)Pause {
+    return movie_->Pause();
+}
+
+- (MpMovieResult)UnPause {
+    return movie_->UnPause();
+}
+
+- (MpMovieResult)Suspend {
+    return movie_->Suspend();
+}
+
+- (MpMovieResult)Resume {
+    return movie_->Resume();
+}
+
+- (MpMovieResult)SeekTo:(int)msec {
+    return movie_->SeekTo(msec);
+}
+
+- (MpMovieResult)Stop {
+    return movie_->Stop();
+}
+
+- (MpMovieResult)ClearFaceData:(int)index {
+    return movie_->ClearFaceData(index);
+}
+
+- (MpMovieResult)FreeFaceData:(MpMovie::FaceData*)faceData {
+    return movie_->FreeFaceData(faceData);
+}
+
+- (MpMovieResult)ClearData {
+    return movie_->ClearData();
+}
+
+- (MpMovieResult)GetIntParam:(MpMovie::ParamCmd)cmd intArg:(int*)intArg {
+    return movie_->GetIntParam(cmd, intArg);
+}
+
+- (MpMovieResult)SetIntParam:(MpMovie::ParamCmd)cmd intArg:(int)intArg {
+    return movie_->SetIntParam(cmd, intArg);
+}
+
+- (MpMovieResult)SetStringParam:(MpMovie::ParamCmd)cmd strArg:(NSString *)strArg {
+    return movie_->SetStringParam(cmd, [strArg UTF8String]);
+}
+
+- (MpMovieResult)TakeScreenShot {
+    return movie_->TakeScreenShot();
+}
+
+- (void)ReleaseImage:(UIImage*)image {
+    CGImageRef ref = image.CGImage;
+    CGDataProviderRef provider = CGImageGetDataProvider(ref);
+    CGImageRelease(ref);
+    CGDataProviderRelease(provider);
+}
+
+- (MpMovie::Status)GetCurrentStatus {
+    return movie_->GetCurrentStatus();
+}
+
+- (int)GetCurrentPosition {
+    return movie_->GetCurrentPosition();
+}
+
+- (MpMovieResult)DrawOneFrame:(int)w h:(int)h {
+    return movie_->DrawOneFrame(w, h);
+}
+
+- (MpMovieResult)SetWorkArea:(NSString*)workArea {
+    return movie_->SetWorkArea([workArea UTF8String]);
+}
+
+- (MpMovieResult)SetOverlayImage:(UIImage*)image pos:(MpMovie::OverlayImagePositoin)pos msec:(int)msec {
+    MpMovie::NativeImg *img = [MpMovieHelper createNativeImg:image];
+    movie_->SetOverlayImage(img, pos, msec);
+    return kSuccess;
+}
+
+- (void)StartRenderer:(int)frameRate {
+    [EAGLContext setCurrentContext:glkView_.context];
+    displayLink_ = [CADisplayLink displayLinkWithTarget:self selector:@selector(render:)];
+    [displayLink_ addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+    [displayLink_ setFrameInterval:(int)(DISPLAY_REFRESH_RATE/frameRate)];
+}
+
+- (void)StopRenderer:(bool)clearBuffer {
+    if(clearBuffer == true) {
+        glkView_.hidden = YES;
+    }
+    [displayLink_ invalidate];
+    displayLink_ = nil;
+}
+
+- (void)Rendering {
+    [EAGLContext setCurrentContext:glkView_.context];
+    [glkView_ display];
+}
+
+- (void)SetContext {
+    [EAGLContext setCurrentContext:glkView_.context];
+}
+
+- (void)NotifyCurrentPosition:(int)msec {
+    if([_delegate respondsToSelector:@selector(NotifyCurrentPosition:)]){
+        [_delegate NotifyCurrentPosition:msec];
+    }
+}
+
+- (void) PlaybackMovieFinished:(int)status {
+    if([_delegate respondsToSelector:@selector(PlaybackMovieFinished:)]){
+        [_delegate PlaybackMovieFinished:status];
+    }
+}
+
+- (void)GenerateMovieFinished:(int)status {
+    if([_delegate respondsToSelector:@selector(GenerateMovieFinished:)]){
+        [_delegate GenerateMovieFinished:status];
+    }
+}
+
+- (void)ScreenShotFinished:(MpMovie::NativeImg *)img {
+    if([_delegate respondsToSelector:@selector(ScreenShotFinished:)]){
+        int w = img->mW;
+        int h = img->mH;
+        unsigned char* data = img->mImg;
+        CGBitmapInfo bitmapInfo = kCGBitmapByteOrderDefault;
+        CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, data, (w * h * 4), bufferFree);
+        CGImageRef imageRef = CGImageCreate(w, h, 8, 32, 4*w,
+                                            CGColorSpaceCreateDeviceRGB(), bitmapInfo, provider,
+                                            NULL, YES, kCGRenderingIntentDefault);
+        UIImage *uImage = [UIImage imageWithCGImage:imageRef];
+        CGImageRelease(imageRef);
+        [_delegate ScreenShotFinished:uImage];
+    }
+}
+
+- (void)GenerateFaceFinished:(MpMovieResult)status facedata:(MpMovie::FaceData *)faceData {
+        if([_delegate respondsToSelector:@selector(GenerateFaceFinished: faceData:)]){
+            [_delegate GenerateFaceFinished:status faceData:faceData];
+        }
+}
+
+#pragma mark - GLKViewDelegate
+
+- (void)glkView:(GLKView *)view drawInRect:(CGRect)rect {
+    if(glkView_.hidden == YES){
+        glkView_.hidden = NO;
+    }
+    float scale = [UIScreen mainScreen].scale;
+    int width = (int)((float)glkView_.frame.size.width * scale + 0.5f);
+    int height = (int)((float)glkView_.frame.size.height * scale + 0.5f);
+    [self DrawOneFrame:width h:height];
+}
+
+- (void)render:(CADisplayLink*)displayLink {
+    [glkView_ display];
+}
+
+/////////
+// Callbacks from MpMovie
+//
+
+////////
+// Control
+//
+
+MpMovieControlFunc::MpMovieControlFunc(void *obj) {
+    mObj = obj;
+}
+
+void MpMovieControlFunc::RequestStartRenderer(int fps) {
+    if(mObj != NULL){
+        MpMovieIf *movieIf = (__bridge MpMovieIf*)mObj;
+        [movieIf StartRenderer:fps];
+    }
+}
+
+void MpMovieControlFunc::RequestStopRenderer(bool clearBuffer) {
+    if(mObj != NULL){
+        MpMovieIf *movieIf = (__bridge MpMovieIf*)mObj;
+        [movieIf StopRenderer:clearBuffer];
+    }
+}
+
+void MpMovieControlFunc::RequestRendering() {
+    if(mObj != NULL){
+        MpMovieIf *movieIf = (__bridge MpMovieIf*)mObj;
+        [movieIf Rendering];
+    }
+}
+
+void MpMovieControlFunc::RequestSetContext() {
+    if(mObj != NULL){
+        MpMovieIf *movieIf = (__bridge MpMovieIf*)mObj;
+        [movieIf SetContext];
+    }
+}
+
+///////
+// Callback
+//
+
+MpMovieCallbackFunc::MpMovieCallbackFunc(void* obj) {
+    mObj = obj;
+}
+
+void MpMovieCallbackFunc::NotifyCurrentPosition(int msec) {
+    if(mObj != NULL){
+        MpMovieIf *movieIf = (__bridge MpMovieIf*)mObj;
+        [movieIf NotifyCurrentPosition:msec];
+    }
+}
+
+static void bufferFree(void *info, const void *data, size_t size) {
+    free((void *)data);
+}
+
+void MpMovieCallbackFunc::ScreenShotFinished(MpMovie::NativeImg *img) {
+    if(mObj != NULL){
+        MpMovieIf *movieIf = (__bridge MpMovieIf*)mObj;
+        [movieIf ScreenShotFinished:img];
+    }
+}
+
+void MpMovieCallbackFunc::PlaybackMovieFinished(int status) {
+    if(mObj != NULL){
+        MpMovieIf *movieIf = (__bridge MpMovieIf*)mObj;
+        [movieIf PlaybackMovieFinished:status];
+    }
+}
+
+void MpMovieCallbackFunc::GenerateMovieFinished(int status) {
+    if(mObj != NULL){
+        MpMovieIf *movieIf = (__bridge MpMovieIf*)mObj;
+        [movieIf GenerateMovieFinished:status];
+    }
+}
+
+void MpMovieCallbackFunc::GenerateFaceFinished(MpMovieResult status, MpMovie::FaceData *faceData) {
+    if(mObj != NULL){
+        MpMovieIf *movieIf = (__bridge MpMovieIf*)mObj;
+        [movieIf GenerateFaceFinished:status facedata:faceData];
+    }
+}
+
+@end

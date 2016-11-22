@@ -1,0 +1,31 @@
+//
+//  DraftBoxCell.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/20.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "DraftBoxCell.h"
+
+@implementation DraftBoxCell
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    
+}
+- (IBAction)moreButtonClick:(id)sender {
+    
+}
+
+- (IBAction)playButtonClick:(id)sender {
+    
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+    
+}
+
+@end

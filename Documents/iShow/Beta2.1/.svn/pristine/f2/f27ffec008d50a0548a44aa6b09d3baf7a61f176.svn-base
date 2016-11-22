@@ -1,0 +1,195 @@
+//
+//  ChooseImageViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/11/7.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "ChooseImageViewController.h"
+
+@interface ChooseImageViewController ()<UIImagePickerControllerDelegate,UINavigationControllerDelegate>
+@property (strong, nonatomic) UIScrollView *scrollView;
+@property (strong, nonatomic) UIImageView *headerImageView;
+@property (strong, nonatomic) NSMutableArray *imageArr;
+@property (strong, nonatomic) UIImageView *selectImageView;
+
+@end
+
+@implementation ChooseImageViewController
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+//    self.navigationController.navigationBarHidden = NO;
+}
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+    self.navigationController.navigationBarHidden = NO;
+}
+- (void)viewWillAppear:(BOOL)animated{
+//    [[UIApplication sharedApplication] setStatusBarHidden:TRUE];
+    
+    self.navigationController.navigationBarHidden = YES;
+}
+
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+//    [[UIApplication sharedApplication] setStatusBarHidden:TRUE];
+    _imageArr = [NSMutableArray array];
+//    self.navigationController.navigationBarHidden = YES;
+    self.view.backgroundColor = [UIColor colorWithHexString:@"#1a1825"];
+    [self addNavigationBar];
+    _headerImageView = [[UIImageView alloc]initWithFrame:CGRectMake(0, 108*kDistanceWidthRatio, kScreenW, 748*kDistanceWidthRatio)];
+    
+    [self.view addSubview:_headerImageView];
+    [self scrollFooterView];
+    [self showHeaderImage];
+    // Do any additional setup after loading the view.
+}
+- (BOOL)prefersStatusBarHidden {
+    return YES;
+}
+
+- (void)scrollFooterView {
+    UILabel *scrollLabel = [[UILabel alloc]initWithFrame:CGRectMake(20*kDistanceWidthRatio, CGRectGetMaxY(self.headerImageView.frame) + 56*kDistanceWidthRatio, kScreenW/2.f, 30)];
+    scrollLabel.text = @"滑动图块选择一张封面";
+    scrollLabel.font = [UIFont systemFontOfSize:14];
+    scrollLabel.textColor = [UIColor whiteColor];
+    scrollLabel.textAlignment = NSTextAlignmentLeft;
+    [self.view addSubview:scrollLabel];
+    [self.view addSubview:self.scrollView];
+}
+
+
+- (void)addNavigationBar {
+    UIButton *but = [UIButton buttonWithType:UIButtonTypeCustom];
+    but.frame = CGRectMake(19*kDistanceWidthRatio, 31*kDistanceWidthRatio, 60, 30);
+    //    but.backgroundColor = [UIColor redColor];
+    [but setTitle:@"取消" forState:UIControlStateNormal];
+    [but setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    but.titleLabel.font = [UIFont systemFontOfSize:14];
+    [but addTarget:self action:@selector(action_image) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:but];
+    
+    UIButton *surnBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    surnBtn.frame = CGRectMake(kScreenW - 19*kDistanceWidthRatio - 60, 31*kDistanceWidthRatio, 60, 30);
+    [surnBtn setTitle:@"确定" forState:UIControlStateNormal];
+    [surnBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    surnBtn.titleLabel.textAlignment = NSTextAlignmentRight;
+    surnBtn.titleLabel.font = [UIFont systemFontOfSize:14];
+    [surnBtn addTarget:self action:@selector(action_sureImage) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:surnBtn];
+    UILabel *titleLabel = [[UILabel alloc]initWithFrame:CGRectMake((kScreenW - 200)/2.f, 28*kDistanceWidthRatio, 200, 30)];
+    titleLabel.text = @"选取封面";
+    titleLabel.font = [UIFont systemFontOfSize:16];
+    titleLabel.textColor = [UIColor whiteColor];
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:titleLabel];
+}
+
+- (void)showHeaderImage {
+    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"file://%@",self.videoPath]];
+//    UIImageView *im = [[UIImageView alloc]initWithFrame:CGRectMake(0, 64, 300, 300)];
+//    im.image = [self getVideoPreViewImage:url time:CMTimeMakeWithSeconds(2,600)];
+//    [self.view addSubview:im];
+    //     = [info objectForKey:UIImagePickerControllerMediaURL];
+    AVAsset *asset = [AVAsset assetWithURL:url];
+    Float64 floats = CMTimeGetSeconds([asset duration]);
+    NSString *num = [NSString stringWithFormat:@"%f",floats];
+    NSInteger count = [num integerValue];
+    
+    for (int i = 0; i< count; i++) {
+        UIImageView *imagev = [[UIImageView alloc]init];
+        imagev.center = CGPointMake(20*kDistanceWidthRatio + 154*kDistanceWidthRatio*(i + 0.5), 10*kDistanceWidthRatio+154*kDistanceWidthRatio/2.f);
+        imagev.bounds = CGRectMake(0, 0, 154*kDistanceWidthRatio, 154*kDistanceWidthRatio);
+        imagev.backgroundColor = [UIColor redColor];
+        imagev.tag = 3500 +i;
+        
+        imagev.image = [self getVideoPreViewImage:url time:CMTimeMakeWithSeconds(i,600)];
+        if (i == 0) {
+            _headerImageView.image = imagev.image;
+            imagev.bounds = CGRectMake(0, 0, 174*kDistanceWidthRatio, 174*kDistanceWidthRatio);
+        }
+        UIButton *but = [UIButton buttonWithType:UIButtonTypeCustom];
+        but.tag = 3400 +i;
+        
+        //        but.bounds = imagev.bounds;
+        but.frame = CGRectMake(0, 0, 154*kDistanceWidthRatio, 154*kDistanceWidthRatio);
+
+        [but addTarget:self action:@selector(action_imageChange:) forControlEvents:UIControlEventTouchUpInside];
+        [imagev addSubview:but];
+        imagev.userInteractionEnabled = YES;
+        [self.scrollView addSubview:imagev];
+        [self.imageArr addObject:imagev];
+    }
+    self.scrollView.contentSize = CGSizeMake(count*154*kDistanceWidthRatio + 68*kDistanceWidthRatio, 0);
+}
+
+#pragma mark -- Envets
+- (void)action_image {
+    [self.navigationController popViewControllerAnimated:YES];
+    }
+- (void)action_sureImage {
+    self.black(self.selectImageView);
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
+
+- (void)action_imageChange:(UIButton *)sender {
+    //    NSLog(@"%ld",sender.tag);
+    if (sender.tag+100 != self.selectImageView.tag) {
+        for (NSInteger index = 0; index < self.imageArr.count; index++) {
+            UIImageView *imageView = self.imageArr[index];
+            imageView.bounds = CGRectMake(0, 0, 154*kDistanceWidthRatio, 154*kDistanceWidthRatio);
+            imageView.center = CGPointMake(20*kDistanceWidthRatio + 154*kDistanceWidthRatio*(index + 0.5), 10*kDistanceWidthRatio+154*kDistanceWidthRatio/2.f);
+            
+        }
+        UIImageView *image = [(UIImageView *)self.view viewWithTag:sender.tag +100];
+        image.bounds = CGRectMake(0, 0, 174*kDistanceWidthRatio, 174*kDistanceWidthRatio);
+        self.selectImageView.bounds = CGRectMake(0, 0, 154*kDistanceWidthRatio, 154*kDistanceWidthRatio);
+        self.selectImageView = image;
+        self.headerImageView.image = image.image;
+        NSInteger currCount = image.tag -3500;
+        for (NSInteger index = 0; index < self.imageArr.count; index++) {
+            if (index < currCount) {
+                UIImageView *imageleft = self.imageArr[index];
+                imageleft.center = CGPointMake(4*kDistanceWidthRatio + 154*kDistanceWidthRatio*(index + 0.5) , 10*kDistanceWidthRatio+154*kDistanceWidthRatio/2.f);
+            }
+            if (index > currCount) {
+                UIImageView *imageR = self.imageArr[index];
+                imageR.center = CGPointMake(36*kDistanceWidthRatio + 154*kDistanceWidthRatio*(index + 0.5) , 10*kDistanceWidthRatio+154*kDistanceWidthRatio/2.f);
+            }
+        }
+    }
+
+}
+
+- (UIImage*) getVideoPreViewImage:(NSURL *)videoPath time:(CMTime)cmTime
+{
+    AVURLAsset *asset = [[AVURLAsset alloc] initWithURL:videoPath options:nil];
+    AVAssetImageGenerator *gen = [[AVAssetImageGenerator alloc] initWithAsset:asset];
+    gen.requestedTimeToleranceAfter = kCMTimeZero;
+    gen.requestedTimeToleranceBefore = kCMTimeZero;
+    //    [asset release];
+    gen.appliesPreferredTrackTransform = YES;
+    //    CMTime time = CMTimeMakeWithSeconds(0.0, 600);
+    NSError *error = nil;
+    CMTime actualTime;
+    CGImageRef image = [gen copyCGImageAtTime:cmTime actualTime:&actualTime error:&error];
+    UIImage *img = [[UIImage alloc] initWithCGImage:image];
+    CGImageRelease(image);
+    //    [gen release];
+    return img;
+}
+
+#pragma mark  -- Getter
+- (UIScrollView *)scrollView {
+    if (!_scrollView) {
+        _scrollView = [[UIScrollView alloc]initWithFrame:CGRectMake(0, CGRectGetMaxY(self.headerImageView.frame) + 193*kDistanceWidthRatio , self.view.frame.size.width, 174*kDistanceWidthRatio)];
+    }
+    return _scrollView;
+}
+
+
+@end

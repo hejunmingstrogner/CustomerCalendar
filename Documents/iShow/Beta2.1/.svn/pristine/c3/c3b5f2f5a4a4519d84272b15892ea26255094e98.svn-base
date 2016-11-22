@@ -1,0 +1,18 @@
+//
+//  BottomView.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/26.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "BottomView.h"
+
+@implementation BottomView
+
++(instancetype)initCellBottomView{
+    NSArray *array=[[NSBundle mainBundle] loadNibNamed:@"BottomView" owner:self options:nil];
+    return [array objectAtIndex:0];
+}
+
+@end

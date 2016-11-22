@@ -1,0 +1,20 @@
+//
+//  CYImage.m
+//  VideoProject
+//
+//  Created by storm on 16/9/9.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "CYImage.h"
+
+@implementation CYImage
+
++(instancetype)imageWithImageURL:(NSDictionary *)imageDic{
+    CYImage *image=[[CYImage alloc] init];
+    image.imageURL = [NSURL URLWithString:imageDic[@"img"]];
+    image.imageW=[imageDic[@"w"] floatValue];
+    image.imageH=[imageDic[@"h"] floatValue];
+    return image;
+}
+@end

@@ -1,0 +1,110 @@
+/*
+ Copyright(C) 2011-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#ifndef __MPFACEGENERATOR_H__
+#define __MPFACEGENERATOR_H__
+
+#include <stdlib.h>
+#include <pthread.h>
+
+#include "MpMovieTypes.h"
+
+#define MAX_PATH     (512)
+#define PATH_MARGIN  (64)
+#define DEFAULT_VAL_LEN (153)
+#define SUB_VAL_LEN     (8)
+
+#define CREATE_DELEGATE(module) \
+public: \
+void Set##module(Mp##module *pDelegate) { p##module = pDelegate; } \
+Mp##module *get##module() { return p##module; }; \
+void Remove##module(Mp##module *pDelegate) { p##module = NULL; } \
+private: \
+Mp##module *p##module;
+
+namespace motionportrait {
+
+class MpSynth;
+class MpFaceGenerator;
+
+
+class MpFaceGeneratorDelegate
+{
+public:
+    /**
+     * Notify Face generation has finished
+     */
+    virtual void GenerateFaceFinished(MpMovieResult ret, void* faceObj){};
+};
+
+
+/**
+ * MpFaceGenerator  (singleton)
+ */
+class MpFaceGenerator
+{
+public:
+    typedef struct {
+        int w;
+        int h;
+        unsigned char *rgb;
+        unsigned char *alpha;
+    } Img;
+    class FaceImg {
+    public:
+        FaceImg() : mFaceName(NULL), mModelName(NULL), mImg(NULL) {};
+        ~FaceImg(){
+            if(mFaceName != NULL){
+                free(mFaceName);
+            }
+            if(mModelName != NULL){
+                free(mModelName);
+            }
+            if(mImg != NULL){
+                if(mImg->rgb != NULL){
+                    free(mImg->rgb);
+                }
+                if(mImg->alpha != NULL){
+                    free(mImg->alpha);
+                }
+                delete mImg;
+            }
+        };
+        char  *mFaceName;
+        char  *mModelName;
+        Img   *mImg;       // for MpSynth::Img
+    };
+    
+    CREATE_DELEGATE(FaceGeneratorDelegate);
+public:
+    static MpFaceGenerator *GetInstance(const char *path);
+    static void DeleteInstance();
+    MpMovieResult GenerateFace(FaceImg *fImg);
+    void FreeFaceData(void* obj);
+private:
+    static MpFaceGenerator *sGenerator;
+    MpFaceGenerator(const char *path);
+    MpFaceGenerator(const MpFaceGenerator &obj){};
+    ~MpFaceGenerator();
+    bool         mIsExecSynth;
+    bool         mSynthThRunnable;
+    pthread_t    mSynthTh;
+    pthread_mutex_t mMutex;
+    pthread_cond_t  mCnd;
+    char         mResPath[MAX_PATH];
+    static int   sRefCnt;
+    
+    static void *launchSynthFunc(void* obj);
+    void synthFunc();
+    void synthData();
+    
+    
+    MpSynth       *mSynth;
+    
+    // Multi synth cannot be exucuted simultaneously.
+    FaceImg     *mFaceImg;
+};
+
+}
+#endif // __MPFACEGENERATOR_H__

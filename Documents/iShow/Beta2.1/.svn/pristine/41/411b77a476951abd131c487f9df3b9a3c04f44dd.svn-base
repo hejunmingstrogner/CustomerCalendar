@@ -1,0 +1,130 @@
+//
+//  FeedBackViewController.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/18.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "FeedBackViewController.h"
+
+@interface FeedBackViewController ()<UITextViewDelegate,UITextViewDelegate>
+
+@end
+
+@implementation FeedBackViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.title=@"意见反馈";
+    self.view.backgroundColor=kColor(242, 242, 242);
+    self.commitButton.layer.cornerRadius=10;
+    self.phoneTextField.delegate=self;
+    self.suggesstionTextView.delegate=self;
+    
+}
+
+- (IBAction)commitButtonClick:(id)sender {
+    NSDictionary *dict=@{@"feedback_content":self.suggesstionTextView.text,@"feedback_contact":self.phoneTextField.text};
+    
+    [[NetworkingHelper shareINstance] POST:@"Messages/feedback" dict:dict succeedData:^(id data) {
+        if (data) {
+            if([data isEqualToString:@"操作成功"]){
+                self.superView.hidden=NO;
+            }
+        }
+    } failure:^(NSError *error) {
+        
+    }];
+}
+
+
+#pragma mark-UITextFieldDelegate
+- (BOOL)textFieldShouldReturn:(UITextField *)textField{
+    [self.phoneTextField resignFirstResponder];
+    return YES;
+}
+
+
+#pragma mark - UITextViewDelegate
+-(void)textViewDidChange:(UITextView *)textView{
+    if (textView.text.length==0) {
+        self.suggesstionTextView.text=@"你有什么意见或者建议,快来告诉我们吧!";
+    }
+}
+
+
+
+
+
+- (void)textViewDidBeginEditing:(UITextView *)textView
+
+{
+    
+    float offset = 0.0f;
+    
+    if(self.suggesstionTextView == textView)
+        
+    {
+        //如果offset>0,说明textView把键盘遮挡住了
+       // CGFloat y=textView.frame.origin.y;
+        offset = textView.frame.origin.y+202.0/568.0*kScreenH-(kScreenH-216/568.0*kScreenH-35);
+        
+    }
+    
+    NSTimeInterval animationDuration = 0.30f;
+    
+    [UIView beginAnimations:@"ResizeForKeyBoard"context:nil];
+    
+    [UIView setAnimationDuration:animationDuration];
+    
+    float width = self.view.frame.size.width;
+    
+    float height = self.view.frame.size.height;
+    if(offset>0){
+    CGRect rect = CGRectMake(0.0f, -offset , width, height);
+    
+    self.view.frame = rect;
+    
+    [UIView  commitAnimations];
+    
+    }
+}
+
+- (void)textViewDidEndEditing:(UITableView *)textView
+
+{
+    
+    float offset = 0.0f;
+    NSTimeInterval animationDuration = 0.30f;
+    
+    [UIView beginAnimations:@"ResizeForKeyBoard"context:nil];
+    
+    [UIView setAnimationDuration:animationDuration];
+    
+    float width = self.view.frame.size.width;
+    
+    float height = self.view.frame.size.height;
+    
+    CGRect rect = CGRectMake(0.0f, offset , width, height);
+    
+    self.view.frame = rect;
+    
+    [UIView commitAnimations];
+    
+}
+
+
+-(void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
+    [self.view endEditing:YES];
+}
+
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+
+
+@end

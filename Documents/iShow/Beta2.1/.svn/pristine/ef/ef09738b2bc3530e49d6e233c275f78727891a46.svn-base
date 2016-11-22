@@ -1,0 +1,31 @@
+//
+//  CommentModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 16/9/23.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <JSONModel/JSONModel.h>
+
+@protocol CommentModel <NSObject>
+@end
+
+
+@interface CommentModel : JSONModel
+
+@property (nonatomic,strong) NSString <Optional> *comment_id;
+@property (nonatomic,strong) NSString <Optional>  *comment_content;
+@property (nonatomic,strong) NSString <Optional> *comment_share_id;
+@property (nonatomic,strong) NSString <Optional> *comment_reply;
+@property (nonatomic,strong) NSString <Optional> *comment_time;
+@property (nonatomic,strong) NSString <Optional> *user_id;
+@property (nonatomic,strong) NSString <Optional> *user_nick_name;
+@property (nonatomic,strong) NSString <Optional> *user_image;
+
+//@property (nonatomic,strong) NSArray *records;
+//@property (nonatomic,strong) NSString *records;
+
+
+
+@end

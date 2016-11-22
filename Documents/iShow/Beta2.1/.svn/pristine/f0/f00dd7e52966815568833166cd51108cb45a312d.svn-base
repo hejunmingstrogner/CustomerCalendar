@@ -1,0 +1,314 @@
+//
+//  PlayHistoryController.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/21.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "PlayHistoryController.h"
+#import "WaterfallLayout.h"
+#import "VideoModelDBManager.h"
+#define kBaseCell @"BaseCell"
+
+static NSString *const HeaderCell = @"HeaderCell";
+static NSString *const FooterCell = @"FooterCell";
+@interface PlayHistoryController ()<AlertContentViewYesButtonClickDelegate,UICollectionViewDelegate,UICollectionViewDataSource,WaterfallLayoutDelegate>
+@property (nonatomic, strong) UILabel *noticeLabel;
+@property (nonatomic,assign) int pageCount;
+@property (nonatomic, assign) int totalPage;
+@property (nonatomic, strong) UICollectionView *collectionView;
+@property (nonatomic, strong) NSMutableArray *dataArray;
+
+@property (nonatomic, strong) NSMutableArray *highsArray;
+@property (nonatomic, strong) NSMutableArray *imageHeightssArray;
+@property (nonatomic, strong) NSMutableArray *textHeightArray;
+@end
+
+@implementation PlayHistoryController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.title=@"播放历史";
+   // [self initNavigationBar];
+    self.view.backgroundColor=[UIColor whiteColor];
+    _pageCount=1;
+    
+    
+    [self initView];
+    [self initData];
+
+}
+
+
+
+-(instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        self.hidesBottomBarWhenPushed = YES;
+    }
+    return self;
+}
+
+
+-(void)initView{
+    
+    WaterfallLayout *waterfall = [WaterfallLayout waterFallLayoutWithColumnCount:2];
+    
+    //或者一次性设置
+    [waterfall setColumnSpacing:10 rowSpacing:10 sectionInset:UIEdgeInsetsMake(10, 10, 10, 10)];
+    
+    
+    //设置代理，实现代理方法
+    waterfall.delegate = self;
+    //创建collectionView
+    
+    self.collectionView = [[UICollectionView alloc] initWithFrame:CGRectMake(0, 0, kScreenW, kScreenH) collectionViewLayout:waterfall];
+    self.collectionView.userInteractionEnabled=YES;
+    self.collectionView.backgroundColor = kColor(242, 242, 242);
+    
+    [self.collectionView registerNib:[UINib nibWithNibName:kBaseCell bundle:nil] forCellWithReuseIdentifier:kBaseCell];
+    
+    self.collectionView.delegate = self;
+    self.collectionView.dataSource = self;
+    
+    self.collectionView.mj_header=[MJRefreshNormalHeader headerWithRefreshingTarget:self refreshingAction:@selector(loadNewData)];
+    self.collectionView.mj_footer=[MJRefreshBackNormalFooter footerWithRefreshingTarget:self refreshingAction:@selector(loadMoreData)];
+    [self.view addSubview:self.collectionView];
+}
+
+-(void)loadNewData{
+    [self.dataArray removeAllObjects];
+    _pageCount=1;
+    [self initData];
+}
+
+-(void)loadMoreData{
+    _pageCount ++;
+    [self initData];
+}
+
+//获取网络数据
+-(void)initData{
+    
+    [self initNavigationBar];
+    [self getHistoryData];
+    
+}
+
+-(void)initNavigationBar{
+    UIButton *rightBarButton=[[UIButton alloc] initWithFrame:CGRectMake(0, 0, 55, 40)];
+    [rightBarButton setTitle:@"清空" forState:UIControlStateNormal];
+    [rightBarButton setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+    [rightBarButton addTarget:self action:@selector(clearButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem *item=[[UIBarButtonItem alloc] initWithCustomView:rightBarButton];
+    self.navigationItem.rightBarButtonItem=item;
+    
+    
+}
+
+
+-(void)clearButtonClick:(UIButton *)button{
+    if (self.dataArray.count==0) {
+        AlertUtils *utils=[[AlertUtils alloc] init];
+        AlertView *view=[AlertView instanceAlertView];
+        view.layer.cornerRadius=20;
+        view.describeLabel.text=@"没有播放历史可以清空";
+        utils.contentView=view;
+        [utils show];
+    }else{
+        
+        AlertUtils *utils=[[AlertUtils alloc] init];
+        AlertView *view=[AlertView instanceAlertView];
+        view.layer.cornerRadius=20;
+        view.delegate=self;
+        view.describeLabel.text=@"确定清空播放历史吗？";
+        utils.contentView=view;
+        [utils show];
+    }
+}
+
+//确定清空播放历史的操作
+-(void)alertContentYesButtonClick{
+    
+    
+    [NSThread detachNewThreadSelector:@selector(deleteData) toTarget:self withObject:nil];
+    
+}
+
+-(void)deleteData{
+    NSArray *array=[[VideoModelDBManager shareManager] selectAll];
+    [[VideoModelDBManager shareManager] deleteVideoHistoryArray:array];
+    [self.collectionView reloadData];
+    [self.collectionView removeFromSuperview];
+    [self addNullLabel];
+    //这里要置为其他类型的controller，不然会影响其他界面数据获取
+}
+
+
+-(void)addNullLabel{
+    UILabel *noticeLabel=[[UILabel alloc] initWithFrame:CGRectMake(0, 0, kScreenW, 50)];
+    noticeLabel.text=@"最近看过的视频会出现在这里出现哦~";
+    noticeLabel.tintColor=[UIColor blackColor];
+    noticeLabel.textAlignment=NSTextAlignmentCenter;
+    noticeLabel.center=self.view.center;
+    [self.view addSubview:noticeLabel];
+}
+
+-(void)getHistoryData{
+    NSArray *array=[[VideoModelDBManager shareManager] selectAll];
+    
+    
+    if (array.count==0) {
+        
+        [self addNullLabel];
+        
+    }else{
+        NSMutableArray *modelArray=[[NSMutableArray alloc] init];
+        
+        self.totalPage=ceilf(array.count/10)+1;//向上取整，向下取整是floor()
+        //因为Page是从1开始
+        for (int i=0; i<self.totalPage; i++) {
+            if(_pageCount==self.totalPage){
+                for (int j=0; j<array.count%10; j++) {
+                    [modelArray addObject:array[10*(_pageCount-1)+j]];
+                }
+                break;
+            }else{
+                for (int j=0; j<10; j++) {
+                    [modelArray addObject:array[10*(_pageCount-1)+j]];
+                }
+                break;
+            }
+        }
+        
+        
+        NSString *share_ids=[NSString string];
+        for (NSString *str in modelArray) {
+            NSString *share=[share_ids stringByAppendingString:[NSString stringWithFormat:@"%@,",str]];
+            share_ids=share;
+        }
+        NSMutableString *mutableStr=[[NSMutableString alloc] initWithString:share_ids];
+        [mutableStr deleteCharactersInRange:NSMakeRange(share_ids.length-1, 1)];
+        NSDictionary *dict=@{@"share_ids":mutableStr};
+        [[NetworkingHelper shareINstance] GET:@"User/playHistory" dict:dict succeedData:^(id data) {
+            if (data) {
+                [self reloadViewWithData:data];
+            }
+        } failure:^(NSError *error) {
+            
+        }];
+    }
+}
+
+
+
+
+
+
+-(void)reloadViewWithData:(id)data{
+    if (data) {
+        NSArray *array=data[@"list"];
+        for (int i=0; i<array.count; i++) {
+            ShareVideosInfoModel *model=[[ShareVideosInfoModel alloc] initWithDictionary:array[i] error:nil];
+            CGFloat imageHeight=[Utils getImageHeightWithUrl:model.share_image withFrameWidth:(kScreenW-20)/2.0];
+            CGFloat textheight=[Utils changeStationWidth:model.share_name anWidthTxtt:(kScreenW-20)/2.0 anfont:14];
+            [self.highsArray addObject:@(imageHeight+textheight)];
+            [self.dataArray addObject:model];
+            [self.imageHeightssArray addObject:@(imageHeight)];
+            [self.textHeightArray addObject:@(textheight)];
+        }
+        [self.collectionView reloadData];
+        [self.collectionView.mj_header endRefreshing];
+        if (_pageCount>=self.totalPage) {
+            [self.collectionView.mj_footer endRefreshingWithNoMoreData];
+        }else{
+            [self.collectionView.mj_footer endRefreshing];
+        }
+        
+        
+    }
+    
+}
+
+-(void)buttonClick:(UIButton *)button{
+    
+}
+
+
+//根据item的宽度与indexPath计算每一个item的高度
+- (CGFloat)waterfallLayout:(WaterfallLayout *)waterfallLayout itemHeightForWidth:(CGFloat)itemWidth atIndexPath:(NSIndexPath *)indexPath {
+    
+    NSNumber *height=self.highsArray[indexPath.row];
+    return height.floatValue+kCellBottomViewHeight;
+}
+
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+    return self.dataArray.count;
+}
+
+-(UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+    
+    
+    BaseCell *cell=(BaseCell *)[collectionView dequeueReusableCellWithReuseIdentifier:kBaseCell forIndexPath:indexPath];
+    cell.model=self.dataArray[indexPath.row];
+    cell.titleImageView.height=[self.imageHeightssArray[indexPath.row] floatValue];
+    return cell;
+}
+
+-(void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath{
+    DetailViewController2 *detailVc=[[DetailViewController2 alloc] init];
+    ShareListModel *listModel =  self.dataArray[indexPath.row];
+    detailVc.controllerType=@"playHistoryController";
+    detailVc.historyIndex=indexPath.row;
+ 
+    [self.navigationController pushViewController:detailVc  animated:YES];
+    
+}
+
+
+-(void)deleteCell:(UIButton *)button{
+    NSInteger tag=button.tag-100;
+    [self.dataArray removeObjectAtIndex:tag];
+    [self.collectionView reloadData];
+}
+
+
+-(NSMutableArray *)dataArray{
+    if (_dataArray==nil) {
+        _dataArray=[[NSMutableArray alloc] init];
+    }
+    return _dataArray;
+}
+
+-(NSMutableArray *)highsArray{
+    if (_highsArray==nil) {
+        _highsArray=[[NSMutableArray alloc] init];
+    }
+    return _highsArray;
+}
+
+-(NSMutableArray *)imageHeightssArray{
+    if (_imageHeightssArray==nil) {
+        _imageHeightssArray=[[NSMutableArray alloc] init];
+    }
+    return _imageHeightssArray;
+}
+
+-(NSMutableArray *)textHeightArray{
+    if (_textHeightArray==nil) {
+        _textHeightArray=[[NSMutableArray alloc] init];
+    }
+    return _textHeightArray;
+}
+
+
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+
+
+@end

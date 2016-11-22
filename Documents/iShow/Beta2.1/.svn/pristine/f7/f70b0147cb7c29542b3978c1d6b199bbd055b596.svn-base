@@ -1,0 +1,48 @@
+//
+//  UserModel.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/19.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <JSONModel/JSONModel.h>
+@protocol UserModel <NSObject>
+@end
+
+@interface UserModel : JSONModel
+@property (nonatomic, strong) NSNumber <Optional>*user_id;//会员id 1
+@property (nonatomic, strong) NSNumber <Optional>*user_cat_id; //会员分类 2
+@property (nonatomic, copy) NSString <Optional>*user_type; //3
+@property (nonatomic, copy) NSString <Optional>*user_login_time; //会员最后一次登陆时间 4
+@property (nonatomic, copy) NSString <Optional>*user_reg_time; //会员注册时间 5
+
+@property (nonatomic, copy) NSString <Optional>*user_mobile;//会员手机号 6
+
+@property (nonatomic, copy) NSString <Optional>*user_nick_name;//会员昵称 7
+@property (nonatomic, copy) NSString <Optional>*user_token; //会员token 8
+@property (nonatomic, strong) NSNumber <Optional>* user_login_count; //会员登陆次数 9
+@property (nonatomic, copy) NSString <Optional>*user_image;//会员头像 10
+@property (nonatomic, copy) NSString <Optional>*user_signature;//用户签名
+@property (nonatomic, copy) NSString <Optional>*code;//短信验证码
+@property (nonatomic, copy) NSString <Optional>*user_location;
+@property (nonatomic, strong) NSNumber <Optional>*user_gender;
+@property (nonatomic, strong) NSNumber <Optional>*video_id;
+@property (nonatomic, strong) NSNumber <Optional>*video_url;
+@property (nonatomic, strong) NSNumber <Optional>*is_follow;//当前登陆用户是否关注， 0 未关注， 1 已关注 （ 必须传token参数, 此数据才有效
+@property (nonatomic, strong) NSNumber <Optional>*vdieo_total_count;
+@property (nonatomic, strong) NSNumber <Optional>*video_count;
+@property (nonatomic, strong) NSNumber <Optional>*zan_video_count;
+@property (nonatomic, strong) NSNumber <Optional>*follow_count;
+@property (nonatomic, strong) NSNumber <Optional>*fans_count;
+@property (nonatomic, strong) NSNumber <Optional>*message_count;
+@property (nonatomic, strong) NSNumber <Optional>*topics;
+@end
+
+
+#import <JSONModel/JSONModel.h>
+#import "UserModel.h"
+@interface UserListModel : JSONModel
+@property (nonatomic, strong) NSArray <Optional,UserModel> *list;
+@property (nonatomic, strong) NSNumber <Optional>*records;//总记录条数
+@end

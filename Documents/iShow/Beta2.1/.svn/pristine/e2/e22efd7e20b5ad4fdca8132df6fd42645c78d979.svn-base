@@ -1,0 +1,307 @@
+/*
+ Copyright(C) 2013-2014 MotionPortrait, Inc. All Rights Reserved.
+ */
+
+#import "MpVideoDecoder.h"
+#import "MpLog.h"
+#import <AVFoundation/AVFoundation.h>
+
+
+
+typedef enum {
+    kIdle = 0,
+    kStarted,
+    kStopped,
+    kFinished,
+    kPaused,
+    kPrepared,
+} DecoderStatus;
+
+@interface MpVideoDecorder () {
+    AVAssetReader *mAssetReader;
+    AVURLAsset    *mAvasset;
+    AVAssetReaderTrackOutput *mVideoOutput;
+    
+    NSMutableArray *mVideoFrameList;
+    int mListSize;
+    int mDecodeRate;
+    int mCurFrameNo;
+    int mFps;
+    DecoderStatus mStatus;
+    
+    CMTime mDuration;
+    int    mOffset;
+    
+    BOOL mDecodeTaskRunnable;
+}
+@end
+
+@implementation MpVideoDecorder
+@synthesize videoTracks = _videoTracks;
+#ifdef SUPPORT_AUDIO
+@synthesize audioTracks = _audioTracks;
+#endif
+
+
+- (id)init {
+    self = [super init];
+    if(self){
+        mVideoFrameList = [[NSMutableArray alloc] init];
+        //_videoFrameList_ = [[NSMutableArray alloc] initWithCapacity:128];
+        mListSize   = 32;    // Q size
+        mDecodeRate = 0.005; // 5ms (fast enough to support 60fps)
+        mCurFrameNo = 0;
+        mDuration = CMTimeMake(0, 1); // invalid value
+        mFps = 0;
+        mOffset = 0;
+        mStatus = kIdle;
+    }
+    return self;
+}
+
+- (void)dealloc {
+    while(mVideoFrameList.count > 0){
+        CMSampleBufferRef ref = (__bridge CMSampleBufferRef)([mVideoFrameList objectAtIndex:0]);
+        [mVideoFrameList removeObjectAtIndex:0];
+        CMSampleBufferInvalidate(ref);
+        CFRelease(ref);
+        ref = nil;
+    }
+}
+
+- (void)SetDataSource:(NSString *)path
+{
+    NSURL *url = [NSURL fileURLWithPath:path];
+    mAvasset = [[AVURLAsset alloc] initWithURL:url options:nil];
+    
+    mDuration = mAvasset.duration;
+
+    _videoTracks = nil;
+    _audioTracks = nil;
+    mDecodeTaskRunnable = false;
+    
+    //[avasset_ loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
+    //    NSLog(@"completionHandler %@", [NSThread currentThread]);
+        
+    //    NSError *error = nil;
+    //    AVKeyValueStatus tracksStatus = [avasset_ statusOfValueForKey:@"tracks" error:&error];
+    //    if (!tracksStatus == AVKeyValueStatusLoaded)
+    //    {
+    //        return;
+    //    }
+        _videoTracks = [mAvasset tracksWithMediaType:AVMediaTypeVideo];
+        _audioTracks = [mAvasset tracksWithMediaType:AVMediaTypeAudio];
+        //NSLog(@"Video : %@", _videoTracks);
+        //NSLog(@"Audio : %@", _audioTracks);
+    //}];
+    
+    int videoIndex = 0;
+    AVAssetTrack* videoTrack = nil;
+    if(_videoTracks != nil && videoIndex < _videoTracks.count){
+        // Select VideoTrack
+        videoTrack = [_videoTracks objectAtIndex:videoIndex];
+        if(videoTrack == nil){
+            return;
+        }
+        mFps = (int)(videoTrack.nominalFrameRate + 0.5f);
+    }
+    mOffset = 0;
+    
+}
+
+
+
+- (void)Prepare
+{
+    if(mAvasset == nil){
+        return;
+    }
+    if(mStatus == kPrepared){
+        return;
+    }
+    
+    int videoIndex = 0;
+#ifdef SUPPORT_AUDIO
+    int audioIndex = 0;
+#endif
+    AVAssetTrack* videoTrack = nil;
+    if(_videoTracks != nil && videoIndex < _videoTracks.count){
+        // Select VideoTrack
+        videoTrack = [_videoTracks objectAtIndex:videoIndex];
+        if(videoTrack == nil){
+            return;
+        }
+    }
+#ifdef SUPPORT_AUDIO
+    if(_audioTracks != nil && audioIndex < _audioTracks.count){
+        // Select AudioTrack
+        AVAssetTrack* audioTrack = [_audioTracks objectAtIndex:audioIndex];
+    }
+#endif
+
+    NSDictionary* dictionary = [NSDictionary dictionaryWithObject:[NSNumber numberWithInt:kCVPixelFormatType_32BGRA] forKey:(id)kCVPixelBufferPixelFormatTypeKey];
+    // for h.264 kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange is recommended
+    mVideoOutput = [[AVAssetReaderTrackOutput alloc] initWithTrack:videoTrack outputSettings:dictionary];
+
+    mAssetReader = [[AVAssetReader alloc] initWithAsset:mAvasset error:nil];
+    [mAssetReader addOutput:mVideoOutput];
+    
+    mStatus = kPrepared;
+    
+}
+
+- (void)Play
+{
+    NSAssert(mStatus == kPrepared, @"VideoDecoder invalid status");
+
+    if(mAssetReader == nil){
+        return;
+    }
+    if(mAssetReader.status == AVAssetReaderStatusReading){
+        return;
+    }
+    
+    
+    if(mOffset != 0){
+        int64_t value = (mOffset * mDuration.timescale) / 1000;
+        mAssetReader.timeRange = CMTimeRangeMake(CMTimeMake(value, mDuration.timescale), kCMTimePositiveInfinity);
+    }
+
+    [mAssetReader startReading];
+    mDecodeTaskRunnable = true;
+    NSCondition *cond = [[NSCondition alloc] init];
+    [cond lock];
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),^{
+        mStatus = kStarted;
+        [cond lock];
+        [cond signal];
+        [cond unlock];
+        while(mDecodeTaskRunnable && mAssetReader.status == AVAssetReaderStatusReading){
+            //NSLog(@"Decoding Q is %d", mVideoFrameList.count);
+            //NSLog(@"--------- Try to get frame %d %d", mStatus, mVideoFrameList.count);
+            //if(mStatus == kStarted && mVideoFrameList.count < mListSize){
+            if(mVideoFrameList.count < mListSize){
+                //NSLog(@"-------Read buffer start");
+                CMSampleBufferRef sampleBufferRef = [mVideoOutput copyNextSampleBuffer];
+                //NSLog(@"-------Read buffer end");
+                if(sampleBufferRef){
+                    @synchronized(mVideoFrameList){
+                        //[videoFrameList_ addObject:CFBridgingRelease(sampleBufferRef)]; // this doesn't work
+                        //NSLog(@"-------- add frame to list");
+                        [mVideoFrameList addObject:(__bridge id)(sampleBufferRef)];
+                    }
+                }else{
+                }
+            }
+            [NSThread sleepForTimeInterval:mDecodeRate];
+            if(mDecodeTaskRunnable == false){
+                [mAssetReader cancelReading];
+                break;
+            }
+        }
+        mStatus = kStopped;
+        if(mAssetReader.status == AVAssetReaderStatusCompleted){
+            mStatus = kFinished;
+        }
+    });
+    // block until actually read thread is up.
+    [cond wait];
+    [cond unlock];
+    cond = nil;
+}
+
+
+- (void) Pause
+{
+    if(mStatus == kStarted){
+        mStatus = kPaused;
+    }
+}
+
+- (void) UnPause
+{
+    if(mStatus == kPaused){
+        mStatus = kStarted;
+    }
+}
+
+- (void) SetOffset:(int)msec
+{
+    if(mStatus == kStarted || mStatus == kPaused || mStatus == kFinished){
+        [self Stop];
+    }
+    mOffset = msec;
+}
+
+- (void) Stop{
+    if(mStatus != kStarted && mStatus != kPaused && mStatus != kFinished){
+        return;
+    }
+    
+    mDecodeTaskRunnable = false;
+    
+    while(mStatus != kStopped && mStatus != kFinished){
+        [NSThread sleepForTimeInterval:0.001]; //wait 1ms
+    }
+    
+    @synchronized(mVideoFrameList){
+        while(mVideoFrameList.count > 0){
+            CMSampleBufferRef ref = (__bridge CMSampleBufferRef)([mVideoFrameList objectAtIndex:0]);
+            [mVideoFrameList removeObjectAtIndex:0];
+            CMSampleBufferInvalidate(ref);
+            CFRelease(ref);
+            ref = nil;
+        }
+    }
+    mAssetReader = nil;
+}
+
+- (VideoFrame*)GetVideoFrame{
+    if(mStatus == kPaused){
+        return nil;
+    }
+    VideoFrame *frame = nil;
+    @synchronized(mVideoFrameList){
+        if(mVideoFrameList.count > 0){
+            //frame = [[VideoFrame alloc] init:[videoFrameList_ objectAtIndex:0]];
+            //  sampleBufferRef = CFBridgingRetain([array_ objectAtIndex:0])
+            CMSampleBufferRef ref = (__bridge CMSampleBufferRef)([mVideoFrameList objectAtIndex:0]);
+            [mVideoFrameList removeObjectAtIndex:0];
+            if(ref != nil){
+                CMTime tm = CMSampleBufferGetOutputPresentationTimeStamp(ref);
+                mCurFrameNo = (int)((double)tm.value * mFps / tm.timescale);
+                //MpLog(kInfo, "FrameNo is %d, PTS is %f (%f)\n", mCurFrameNo, (float)tm.value * 1000 / tm.timescale, mFps);
+                frame = [[VideoFrame alloc] initWithSampleBuffer:ref frameNo:mCurFrameNo];
+            }else{
+                if(mStatus == kFinished){
+                    frame = [[VideoFrame alloc] initWithSampleBuffer:nil frameNo:-1];
+                }
+            }
+        }
+    }
+    return frame;
+}
+- (void)ReleaseVideoFrame:(VideoFrame *)frame{
+    if(frame != nil){
+        [frame releaseFrame];
+        frame = nil;
+    }
+}
+
+- (int)GetDuration{
+    float msec = ((float)mDuration.value / (float)mDuration.timescale) * 1000;
+    return (int)msec;
+}
+
+- (int)GetFps{
+    return mFps;
+}
+
+- (BOOL)IsPlaying{
+    if(mStatus == kStarted){
+        return true;
+    }
+    return false;
+}
+
+@end

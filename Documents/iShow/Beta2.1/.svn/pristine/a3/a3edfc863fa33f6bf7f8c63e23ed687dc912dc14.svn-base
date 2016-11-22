@@ -1,0 +1,187 @@
+//
+//  ErrorCodeUtils.m
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/10/10.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import "ErrorCodeUtils.h"
+
+@implementation ErrorCodeUtils
++(NSString *)getErrorTitleWithErrorCode:(NSInteger )errorCode{
+//    NSInteger code=errorCode.integerValue;
+//    NSLog(@"--%ld",code);
+//    NSLog(@"[[[%@",errorCode);
+    NSString *message;
+    switch (errorCode) {
+        case 50000:
+            message=@"接口调用有误";
+            break;
+        case 50001:
+            message=@"未发送认证信息";
+            break;
+        case 50002:
+            message=@"认证失败";
+            break;
+        case 50003:
+            message=@"操作失败";
+            break;
+        case 60000:
+            message=@"验证失败";
+            break;
+        case 60001:
+            message=@"缺少手机号码";
+            break;
+        case 60002:
+            message=@"手机号码格式错误";
+            break;
+        case 60003:
+            message=@"手机号码已注册";
+            break;
+        case 60004:
+            message=@"缺少密码或格式错误";
+            break;
+        case 60005:
+            message=@"缺少昵称或昵称格式错误";
+            break;
+        case 60006:
+            message=@"昵称已经存在";
+            break;
+        case 60007:
+            message=@"验证码错误";
+            break;
+        case 60008:
+            message=@"缺少会员Id";
+            break;
+        case 60009:
+            message=@"缺少分享Id";
+            break;
+        case 60010:
+            message=@"缺少关注会员Id";
+            break;
+        case 60011:
+            message=@"缺少搜索关键字";
+            break;
+        case 60012:
+            message=@"没有提交任何需要修改的信息";
+            break;
+        case 60013:
+            message=@"缺少所在地或所在地格式错误";
+            break;
+        case 60014:
+            message=@"缺少个性签名或个性签名格式错误";
+            break;
+        case 60015:
+            message=@"缺少分享标题";
+            break;
+        case 60016:
+            message=@"缺少分享视频Id";
+            break;
+        case 60017:
+            message=@"缺少视频Id";
+            break;
+        case 60018:
+            message=@"缺少视频标题";
+            break;
+        case 60019:
+            message=@"缺少视频时长";
+            break;
+        case 60020:
+            message=@"缺少评论内容";
+            break;
+        case 60021:
+            message=@"缺少评论分享Id";
+            break;
+        case 60022:
+            message=@"缺少主题Id";
+            break;
+        case 60023:
+            message=@"缺少主题标题";
+            break;
+        case 60024:
+            message=@"缺少主题简介";
+            break;
+        case 70000:
+            message=@"操作失败";
+            break;
+        case 70001:
+            message=@"未选择文件";
+            break;
+        case 70002:
+            message=@"未选择视频文件";
+            break;
+        case 70003:
+            message=@"未选择分享封面文件";
+            break;
+        case 70004:
+            message=@"未选择话题封面文件";
+            break;
+        case 70005:
+            message=@"未选择主题封面文件";
+            break;
+        case 70006:
+            message=@"上传文件失败";
+            break;
+        case 70007:
+            message=@"上传头像失败";
+            break;
+        case 70008:
+            message=@"上传视频失败";
+            break;
+        case 70009:
+            message=@"上传分享封面失败";
+            break;
+        case 70010:
+            message=@"上传话题封面失败";
+            break;
+        case 70011:
+            message=@"上传主题封面失败";
+            break;
+        case 70012:
+            message=@"登录失败, 用户不存在/密码错误/帐号已被停用";
+            break;
+        case 70013:
+            message=@"用户不存在";
+            break;
+        case 70014:
+            message=@"密码不正确";
+            break;
+        case 70015:
+            message=@"帐号已被停用";
+            break;
+        case 70016:
+            message=@"不能关注自己";
+            break;
+        case 70017:
+            message=@"分享不存在";
+            break;
+        case 70018:
+            message=@"视频不存在";
+            break;
+        case 70019:
+            message=@"不能分享自己原创视频";
+            break;
+        case 70020:
+            message=@"主题不存在";
+            break;
+        case 70021:
+            message=@"未选择主题资源文件";
+            break;
+        case 70022:
+            message=@"主题资源文件上传失败";
+            break;
+        case 70023:
+            message=@"主题名称已经存在";
+            break;
+        case 99999:
+            message=@"未知错误";
+            break;
+            
+        default:
+            break;
+    }
+    return message;
+}
+
+@end

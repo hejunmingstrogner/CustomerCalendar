@@ -1,0 +1,42 @@
+//
+//  VideoCollectionCell.h
+//  VideoProject_0.1Beta
+//
+//  Created by 徐琦 on 16/10/14.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "YYKit.h"
+#import "YYControl.h"
+#import "BaseCellLayout.h"
+
+#define kLabelHeight 15
+#define kCenterX kCellBottomViewHeight/2.0
+#define kUpY 5
+
+@class VideoCollectionCell;
+
+@interface StatusView : YYControl
+@property (nonatomic, strong) YYControl *bigImageView;
+@property (nonatomic, strong) YYLabel *textLabel;
+@property (nonatomic, strong) YYControl *headImageView;
+@property (nonatomic, strong) YYLabel *nameLabel;
+@property (nonatomic, strong) UIImageView *favoriteView;
+@property (nonatomic, strong) YYLabel *numberLabel;
+@property (nonatomic, strong) VideoCollectionCell *cell;
+@property (nonatomic, strong) UIView *lineView;
+@property (nonatomic, strong) UIButton *clickButton;
+@end
+
+@protocol BaseStatusCellDelegate <NSObject>
+-(void)baseCollectionCellClick:(VideoCollectionCell *)cell;
+
+@end
+
+@interface VideoCollectionCell : UICollectionViewCell
+@property (nonatomic, strong) StatusView *statusView;
+@property (nonatomic, strong) BaseCellLayout *layout;
+@property (nonatomic, assign) NSInteger cellTag;
+@property (nonatomic, weak) id<BaseStatusCellDelegate>delegate;
+@end

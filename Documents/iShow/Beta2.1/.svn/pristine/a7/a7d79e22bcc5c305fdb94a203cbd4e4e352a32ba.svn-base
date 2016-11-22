@@ -1,0 +1,33 @@
+//
+//  AdressPickerView.h
+//  VideoProject_0.1Beta
+//
+//  Created by storm on 16/9/22.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+#define kSW self.frame.size.width
+#define kSH self.frame.size.height
+
+@interface AdressPickerView : UIView<UIPickerViewDelegate,UIPickerViewDataSource>
+{
+    UIView *_BJView;                //一个view，工具栏和pickview都是添加到上面，便于管理
+
+    NSArray *_AllARY;          //取出所有数据(json类型，在pilst里面)
+    NSMutableArray *_ProvinceAry;          //只装省份的数组
+    NSMutableArray *_CityAry;              //只装城市的数组
+
+    UIPickerView *_pickView;        //最主要的选择器
+
+    NSInteger _proIndex;            //用于记录选中哪个省的索引
+    NSInteger _cityIndex;           //用于记录选中哪个市的索引
+}
+
+@property (copy, nonatomic) void (^sele)(NSString *proviceStr,NSString *cityStr);
+
+-(instancetype)initWithFrame:(CGRect)rect selectCityTitle:(NSString*)title;
+//显示
+-(void)showCityView:(void(^)(NSString *proviceStr,NSString *cityStr))selectStr;
+@end

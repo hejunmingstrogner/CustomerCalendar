@@ -1,0 +1,16 @@
+//
+//  PublishViewController.h
+//  VideoProject_0.1Beta
+//
+//  Created by once_CH on 2016/10/27.
+//  Copyright © 2016年 CX. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface PublishViewController : UIViewController
+//- (instancetype)initWithVideoPath:(NSString*)path;
+//@property (strong, nonatomic) UIImage *headerImage;
+//@property (strong, nonatomic) NSString *videoPa;
+@property (nonatomic, retain) NSString *videoPath;
+@end

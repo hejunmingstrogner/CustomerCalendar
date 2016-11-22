@@ -1,0 +1,28 @@
+//
+//  ScrollView.h
+//
+//
+//  Created by CX on 16/5/16.
+//  Copyright © 2016年 陈旭. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "Utils.h"
+
+
+
+@class ScrollView;
+@protocol ScrollViewDelegate <NSObject>
+
+-(void)clickLeftButton;
+-(void)clickRightButton;
+
+@end
+
+
+@interface ScrollView : UIView
+//@property (nonatomic,strong) NSMutableArray *titleArr;
+@property (nonatomic,strong) NSMutableArray *modelArray;
+@property (nonatomic, weak) id<ScrollViewDelegate> delegate;
+@property (nonatomic) BOOL isAddBottomButton;//判断是否要加底部的button；
+@end
